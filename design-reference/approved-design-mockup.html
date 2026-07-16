@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Nordic Engros">
+<meta name="theme-color" content="#22232C">
+<title>Nordic Engros — Bestilling</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#2A2C37; --ink-deep:#22232C;
+    --gold:#EFA63A; --gold-deep:#D98E22;
+    --gold-logo:#E0B52B;   /* exact gold sampled from the logo file */
+    --cream:#F4EDE0; --cream-soft:#FBF7EF;
+    --card:#FFFFFF; --line:#E7DFD0;
+    --muted:#9A9384; --text:#2A2C37;
+    --u:1; --cu:1; --cols:2;
+    font-family:'Poppins',system-ui,-apple-system,sans-serif;
+  }
+  /* 32" PORTRAIT panel (1080 x 1920) — rail + 5 across */
+  @media (orientation:portrait) and (min-height:1300px){ :root{ --u:1.5; --cu:.88; --cols:5; } }
+  @media (orientation:portrait) and (min-height:1800px){ :root{ --u:1.75; --cu:1.0; --cols:5; } }
+  /* landscape fallback */
+  @media (orientation:landscape) and (min-width:1200px){ :root{ --u:1.25; --cu:.9; --cols:5; } }
+  @media (orientation:landscape) and (min-width:1800px){ :root{ --u:1.5; --cu:1.05; --cols:6; } }
+
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{background:var(--ink-deep);color:var(--text);overflow:hidden;user-select:none;}
+  .kiosk{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--cream);overflow:hidden;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  html,body{overscroll-behavior:none;touch-action:manipulation;}
+  .lockup{width:min(26vw,calc(175px*var(--u)));height:auto;position:relative;display:block;margin-bottom:1vh;}
+
+  /* ATTRACT */
+  #attract{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:7vmin;cursor:pointer;color:#F4EDE0;
+    background:radial-gradient(110% 60% at 50% 30%, #34363f 0%, var(--ink) 46%, var(--ink-deep) 100%);}
+  #attract .glow{position:absolute;top:20%;width:70vw;height:70vw;max-width:640px;max-height:640px;border-radius:50%;
+    background:radial-gradient(circle, rgba(239,166,58,.3), transparent 62%);filter:blur(8px);pointer-events:none;}
+  #attract .mark{width:clamp(90px,22vw,220px);height:auto;position:relative;}
+  .wordmark{margin-top:3.5vh;font-weight:800;letter-spacing:.1em;font-size:clamp(28px,6.4vw,74px);color:#F6F1E7;line-height:1;}
+  .wordmark em{font-style:normal;color:var(--gold);}
+  .gold-rule{width:clamp(80px,14vw,170px);height:5px;background:var(--gold);border-radius:3px;margin:2.4vh auto 0;}
+  .tagline{margin-top:1.8vh;font-size:clamp(10px,1.8vw,20px);letter-spacing:.44em;text-transform:uppercase;color:rgba(246,241,231,.55);font-weight:500;}
+  .eyebrow{margin-top:6vh;font-size:clamp(11px,1.9vw,21px);letter-spacing:.34em;text-transform:uppercase;color:var(--gold);font-weight:600;}
+  .attract-h{margin-top:1.6vh;font-size:clamp(30px,7vw,84px);font-weight:800;line-height:1.02;letter-spacing:-.01em;}
+  .attract-sub{margin-top:2.6vh;font-size:clamp(14px,2.4vw,28px);color:rgba(246,241,231,.66);max-width:24ch;font-weight:400;line-height:1.45;}
+  .tap-pill{margin-top:6vh;display:inline-flex;align-items:center;gap:.6em;background:var(--gold);color:var(--ink-deep);
+    font-weight:700;font-size:clamp(16px,2.6vw,32px);padding:.85em 2em;border-radius:999px;
+    box-shadow:0 16px 44px rgba(239,166,58,.36);animation:pulse 2.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.045)}}
+  #attract .foot{position:absolute;bottom:4vh;font-size:clamp(10px,1.6vw,18px);letter-spacing:.2em;text-transform:uppercase;color:rgba(246,241,231,.4);}
+
+  /* HEADER — search only, full width */
+  .head{flex:0 0 auto;background:var(--ink);z-index:6;box-shadow:0 3px 16px rgba(34,35,44,.22);
+    padding:calc(12px*var(--u)) calc(14px*var(--u));}
+  .searchbox{display:flex;align-items:center;gap:calc(12px*var(--u));width:100%;
+    background:rgba(244,237,224,.1);border:1.5px solid rgba(244,237,224,.16);border-radius:calc(14px*var(--u));
+    padding:calc(14px*var(--u)) calc(17px*var(--u));cursor:text;
+    transition:background .18s ease, border-color .18s ease;}
+  .searchbox.active{background:#fff;border-color:var(--gold);}
+  .searchbox svg{width:calc(21px*var(--u));height:calc(21px*var(--u));flex:0 0 auto;stroke:rgba(244,237,224,.55);fill:none;stroke-width:2.2;stroke-linecap:round;transition:stroke .18s ease;}
+  .searchbox.active svg{stroke:var(--muted);}
+  .searchbox .q{flex:1;font-size:calc(16.5px*var(--u));font-weight:500;color:#F4EDE0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .searchbox.active .q{color:var(--ink);}
+  .searchbox .q.ph{color:rgba(244,237,224,.45);font-weight:400;}
+  .searchbox.active .q.ph{color:var(--muted);}
+  .searchbox .caret{width:2px;height:calc(20px*var(--u));background:var(--gold);animation:blink 1s step-end infinite;display:none;flex:0 0 auto;}
+  .searchbox.active .caret{display:block;}
+  @keyframes blink{50%{opacity:0}}
+  .searchbox .clr{width:calc(28px*var(--u));height:calc(28px*var(--u));border:none;border-radius:50%;background:rgba(0,0,0,.14);
+    color:var(--muted);font-size:calc(16px*var(--u));line-height:1;cursor:pointer;display:none;flex:0 0 auto;}
+  .searchbox.has .clr{display:block;}
+
+  /* BODY = rail + grid */
+  .body{flex:1;display:flex;min-height:0;}
+
+  /* SIDE RAIL — every category visible at once, no horizontal scrolling */
+  .rail{flex:0 0 calc(168px*var(--u));background:var(--cream-soft);border-right:1px solid var(--line);
+    padding:calc(10px*var(--u)) calc(9px*var(--u));overflow-y:auto;display:flex;flex-direction:column;gap:calc(6px*var(--u));scrollbar-width:none;}
+  .rail::-webkit-scrollbar{display:none;}
+  .cat{position:relative;display:flex;align-items:center;gap:calc(10px*var(--u));width:100%;background:transparent;
+    border:none;border-radius:calc(12px*var(--u));padding:calc(12px*var(--u)) calc(10px*var(--u));
+    font-family:inherit;font-weight:600;font-size:calc(12.5px*var(--u));color:var(--text);cursor:pointer;text-align:left;transition:.12s;}
+  .cat .ic{font-size:calc(19px*var(--u));line-height:1;flex:0 0 auto;}
+  .cat .lbl{flex:1;min-width:0;line-height:1.2;}
+  .cat .n{display:block;font-size:calc(10px*var(--u));color:var(--muted);font-weight:500;margin-top:calc(2px*var(--u));}
+  .cat:active{transform:scale(.97);}
+  .cat.on{background:var(--ink);color:#F4EDE0;}
+  .cat.on .n{color:rgba(244,237,224,.5);}
+  .cat.on::after{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:calc(3px*var(--u));
+    height:calc(22px*var(--u));background:var(--gold);border-radius:0 3px 3px 0;}
+
+  /* GRID */
+  .grid-wrap{flex:1;overflow-y:auto;padding:calc(18px*var(--u)) calc(18px*var(--u)) calc(24px*var(--u));}
+  .gh-eyebrow{font-size:calc(11.5px*var(--u));font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:var(--gold-deep);}
+  .gh-row{display:flex;align-items:baseline;gap:calc(12px*var(--u));margin:calc(5px*var(--u)) 0 calc(4px*var(--u));}
+  .gh-row h2{font-size:calc(27px*var(--u));font-weight:800;color:var(--ink);letter-spacing:-.01em;}
+  .gh-row .cnt{margin-left:auto;font-size:calc(13.5px*var(--u));color:var(--muted);font-weight:500;white-space:nowrap;}
+  .gh-rule{height:3px;width:calc(60px*var(--u));background:var(--gold);border-radius:2px;margin-bottom:calc(16px*var(--u));}
+  .grid{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:calc(12px*var(--cu));}
+  .card{background:var(--card);border:1.5px solid var(--line);border-radius:calc(18px*var(--cu));overflow:hidden;position:relative;
+    display:flex;flex-direction:column;box-shadow:0 4px 14px rgba(42,44,55,.05);cursor:pointer;
+    transition:transform .1s, border-color .12s, box-shadow .12s;}
+  .card:active{transform:scale(.96);}
+  .card.has{border-color:var(--gold);box-shadow:0 6px 20px rgba(239,166,58,.22);}
+  .card.out{opacity:.5;}
+
+  .ribbon{position:absolute;top:0;right:0;width:calc(62px*var(--cu));height:calc(62px*var(--cu));overflow:hidden;z-index:2;pointer-events:none;}
+  .ribbon span{position:absolute;top:calc(11px*var(--cu));right:calc(-22px*var(--cu));transform:rotate(45deg);background:var(--gold);
+    color:#fff;font-size:calc(8px*var(--cu));font-weight:700;letter-spacing:.1em;padding:calc(3px*var(--cu)) calc(26px*var(--cu));}
+
+  /* photo does the work — bigger, no border under it */
+  .thumb{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;background:#fff;padding:calc(10px*var(--cu));}
+  .thumb img{max-width:100%;max-height:100%;object-fit:contain;}
+  .thumb.noimg{background:linear-gradient(160deg,var(--cream),#fff);}
+  .thumb .fallback{display:none;font-size:calc(11px*var(--cu));font-weight:700;color:var(--gold-deep);text-align:center;padding:0 calc(6px*var(--cu));}
+  .thumb.noimg .fallback{display:block;}
+
+  .meta{padding:0 calc(10px*var(--cu)) calc(10px*var(--cu));display:flex;flex-direction:column;gap:calc(1px*var(--cu));flex:1;}
+  .nm{font-weight:600;font-size:calc(12.5px*var(--cu));color:var(--text);line-height:1.25;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.5em;}
+  /* vendor + stock on one quiet line */
+  .sub{font-size:calc(10px*var(--cu));font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted);}
+  .sub .st{font-weight:600;}
+  .sub .st.ok{color:#5F8A3A;}
+  .sub .st.low{color:var(--gold-deep);}
+  .sub .st.out{color:#B2555A;}
+
+  .pricerow{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:calc(4px*var(--cu));padding-top:calc(8px*var(--cu));}
+  .unit{font-weight:800;font-size:calc(20px*var(--cu));color:var(--ink);line-height:1;white-space:nowrap;}
+  .unit span{font-size:calc(10.5px*var(--cu));font-weight:600;color:var(--muted);margin-left:calc(2px*var(--cu));}
+  .plus{width:calc(38px*var(--cu));height:calc(38px*var(--cu));border-radius:calc(11px*var(--cu));background:var(--cream);
+    color:var(--gold-deep);font-size:calc(23px*var(--cu));font-weight:700;line-height:calc(36px*var(--cu));text-align:center;flex:0 0 auto;}
+  .card.has .plus{background:var(--gold);color:#fff;}
+
+  .cstep{display:flex;align-items:center;background:var(--gold);border-radius:calc(12px*var(--cu));flex:0 0 auto;}
+  .cstep button{width:calc(36px*var(--cu));height:calc(40px*var(--cu));border:none;background:none;color:#fff;
+    font-size:calc(21px*var(--cu));font-weight:700;cursor:pointer;line-height:1;}
+  .cstep span{min-width:calc(22px*var(--cu));text-align:center;color:#fff;font-weight:800;font-size:calc(15px*var(--cu));}
+
+  .outtag{position:absolute;top:calc(10px*var(--cu));left:calc(10px*var(--cu));background:var(--ink);color:#F4EDE0;
+    font-size:calc(9px*var(--cu));font-weight:700;letter-spacing:.06em;padding:calc(5px*var(--cu)) calc(10px*var(--cu));
+    border-radius:999px;text-transform:uppercase;z-index:2;}
+  .qbadge{position:absolute;top:calc(8px*var(--cu));left:calc(8px*var(--cu));min-width:calc(28px*var(--cu));height:calc(28px*var(--cu));
+    padding:0 calc(7px*var(--cu));background:var(--ink);color:#F4EDE0;border-radius:999px;font-weight:700;font-size:calc(13.5px*var(--cu));
+    display:flex;align-items:center;justify-content:center;z-index:2;box-shadow:0 4px 10px rgba(34,35,44,.3);}
+  .noresult{padding:calc(60px*var(--u)) calc(20px*var(--u));text-align:center;color:var(--muted);}
+  .noresult b{display:block;font-size:calc(20px*var(--u));color:var(--ink);margin-bottom:calc(8px*var(--u));}
+
+  /* CART BAR */
+  .cartbar{flex:0 0 auto;display:flex;align-items:center;gap:calc(14px*var(--u));padding:calc(14px*var(--u)) calc(18px*var(--u));
+    background:#fff;border-top:1px solid var(--line);box-shadow:0 -8px 26px rgba(42,44,55,.09);z-index:6;}
+  .cartbar .info{display:flex;flex-direction:column;min-width:0;}
+  .cartbar .info b{font-size:calc(19px*var(--u));font-weight:800;color:var(--ink);}
+  .cartbar .info small{font-size:calc(12.5px*var(--u));color:var(--muted);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cartbar .sp{flex:1;}
+  .seebtn{display:flex;align-items:center;gap:calc(11px*var(--u));background:var(--gold);border:none;color:#fff;font-family:inherit;
+    font-weight:700;font-size:calc(17px*var(--u));padding:calc(17px*var(--u)) calc(24px*var(--u));border-radius:calc(15px*var(--u));
+    cursor:pointer;box-shadow:0 10px 24px rgba(239,166,58,.32);white-space:nowrap;}
+  .seebtn:disabled{background:#d8d0c2;box-shadow:none;}
+  .seebtn .c{background:rgba(0,0,0,.15);border-radius:999px;min-width:calc(30px*var(--u));height:calc(30px*var(--u));
+    display:flex;align-items:center;justify-content:center;font-size:calc(15px*var(--u));}
+
+  /* KEYBOARD */
+  #kb{position:absolute;left:0;right:0;bottom:0;z-index:35;background:var(--ink);
+    padding:calc(12px*var(--u)) calc(10px*var(--u)) calc(16px*var(--u));
+    box-shadow:0 -14px 40px rgba(34,35,44,.4);transform:translateY(105%);transition:.24s cubic-bezier(.4,0,.1,1);}
+  #kb.show{transform:translateY(0);}
+  .kbrow{display:flex;justify-content:center;gap:calc(6px*var(--u));margin-bottom:calc(6px*var(--u));}
+  .key{flex:1 1 0;min-width:0;height:calc(54px*var(--u));border:none;border-radius:calc(10px*var(--u));
+    background:rgba(244,237,224,.13);color:#F4EDE0;font-family:inherit;font-size:calc(19px*var(--u));font-weight:600;cursor:pointer;}
+  .key:active{background:var(--gold);color:var(--ink-deep);}
+  .key.wide{flex:2.2 1 0;font-size:calc(14px*var(--u));font-weight:700;}
+  .key.space{flex:4 1 0;font-size:calc(13px*var(--u));}
+  .key.gold{background:var(--gold);color:var(--ink-deep);}
+
+  /* SHEET */
+  .scrim{position:absolute;inset:0;background:rgba(34,35,44,.5);z-index:20;opacity:0;pointer-events:none;transition:.2s;}
+  .scrim.show{opacity:1;pointer-events:auto;}
+  .sheet{position:absolute;left:0;right:0;bottom:0;z-index:25;max-height:88%;background:var(--cream);
+    border-radius:calc(26px*var(--u)) calc(26px*var(--u)) 0 0;transform:translateY(101%);
+    transition:.28s cubic-bezier(.4,0,.1,1);display:flex;flex-direction:column;box-shadow:0 -20px 60px rgba(34,35,44,.35);}
+  .sheet.show{transform:translateY(0);}
+  .grab{width:calc(46px*var(--u));height:calc(5px*var(--u));background:var(--line);border-radius:999px;margin:calc(10px*var(--u)) auto calc(2px*var(--u));}
+  .sheet h3{padding:calc(12px*var(--u)) calc(20px*var(--u)) calc(10px*var(--u));font-size:calc(21px*var(--u));font-weight:800;
+    color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:calc(10px*var(--u));}
+  .sheet h3 .x{background:none;border:none;font-size:calc(30px*var(--u));color:var(--muted);cursor:pointer;line-height:1;}
+  .clearbtn{background:none;border:none;font-family:inherit;font-size:calc(13px*var(--u));font-weight:600;
+    color:#B2555A;cursor:pointer;padding:calc(8px*var(--u)) calc(10px*var(--u));border-radius:calc(9px*var(--u));
+    margin-left:auto;transition:background .15s ease;}
+  .clearbtn:active{background:rgba(178,85,90,.12);}
+  .clearbtn[disabled]{color:var(--muted);opacity:.45;}
+  .grid-wrap{scroll-behavior:smooth;}
+  .lines{flex:1;overflow-y:auto;padding:calc(4px*var(--u)) calc(16px*var(--u));min-height:calc(90px*var(--u));}
+  .line{display:flex;align-items:center;gap:calc(11px*var(--u));background:#fff;border:1px solid var(--line);
+    border-radius:calc(14px*var(--u));padding:calc(10px*var(--u)) calc(11px*var(--u));margin-bottom:calc(10px*var(--u));}
+  .line .lim{width:calc(48px*var(--u));height:calc(48px*var(--u));flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    background:var(--cream-soft);border-radius:calc(10px*var(--u));overflow:hidden;}
+  .line .lim img{max-width:100%;max-height:100%;object-fit:contain;}
+  .line .lmeta{flex:1;min-width:0;}
+  .line .lmeta b{font-size:calc(13.5px*var(--u));font-weight:600;display:block;color:var(--text);line-height:1.25;}
+  .line .lmeta small{font-size:calc(11px*var(--u));color:var(--muted);}
+  .stepper{display:flex;align-items:center;background:var(--cream-soft);border-radius:calc(11px*var(--u));border:1px solid var(--line);flex:0 0 auto;}
+  .stepper button{width:calc(42px*var(--u));height:calc(42px*var(--u));border:none;background:none;font-size:calc(22px*var(--u));
+    font-weight:700;color:var(--gold-deep);cursor:pointer;}
+  .stepper span{min-width:calc(24px*var(--u));text-align:center;font-weight:700;font-size:calc(15px*var(--u));color:var(--ink);}
+  .nameblock{padding:calc(6px*var(--u)) calc(20px*var(--u)) 0;}
+  .nameblock label{font-size:calc(12.5px*var(--u));font-weight:600;color:var(--muted);display:block;margin-bottom:calc(7px*var(--u));}
+  .fakeinput{width:100%;font-size:calc(16px*var(--u));padding:calc(15px*var(--u)) calc(16px*var(--u));
+    border:1.5px solid var(--line);border-radius:calc(13px*var(--u));background:#fff;color:var(--ink);cursor:text;
+    display:flex;align-items:center;gap:2px;min-height:calc(54px*var(--u));}
+  .fakeinput.active{border-color:var(--gold);}
+  .fakeinput .ph{color:var(--muted);}
+  .fakeinput .caret{width:2px;height:calc(20px*var(--u));background:var(--gold);animation:blink 1s step-end infinite;display:none;}
+  .fakeinput.active .caret{display:block;}
+  .sheet-foot{padding:calc(14px*var(--u)) calc(20px*var(--u)) calc(20px*var(--u));border-top:1px solid var(--line);background:#fff;}
+  .totalrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:calc(12px*var(--u));}
+  .totalrow span{font-size:calc(14.5px*var(--u));color:var(--muted);font-weight:500;}
+  .totalrow b{font-size:calc(26px*var(--u));font-weight:800;color:var(--ink);}
+  .sendbtn{width:100%;background:var(--gold);border:none;color:#fff;font-family:inherit;font-weight:700;font-size:calc(20px*var(--u));
+    padding:calc(20px*var(--u));border-radius:calc(15px*var(--u));cursor:pointer;box-shadow:0 12px 28px rgba(239,166,58,.36);}
+  .emptycart{text-align:center;color:var(--muted);padding:calc(40px*var(--u)) calc(20px*var(--u));font-size:calc(15px*var(--u));}
+
+  /* DONE */
+  #done{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:7vmin;color:#F4EDE0;background:radial-gradient(110% 60% at 50% 30%, #34363f 0%, var(--ink) 48%, var(--ink-deep) 100%);}
+  #done.show{display:flex;}
+  .check{width:clamp(96px,22vw,190px);height:clamp(96px,22vw,190px);border-radius:50%;background:var(--gold);display:flex;
+    align-items:center;justify-content:center;font-size:clamp(52px,12vw,100px);color:#fff;margin-bottom:4vh;
+    animation:pop .45s cubic-bezier(.2,1.4,.4,1);box-shadow:0 18px 50px rgba(239,166,58,.42);}
+  @keyframes pop{from{transform:scale(0)}to{transform:scale(1)}}
+  #done h1{font-size:clamp(28px,6.4vw,72px);font-weight:800;}
+  #done .ordno{margin-top:2.4vh;font-size:clamp(19px,3.6vw,40px);font-weight:700;color:var(--gold);letter-spacing:.05em;}
+  #done p{margin-top:3vh;font-size:clamp(14px,2.4vw,28px);color:rgba(246,241,231,.7);max-width:24ch;line-height:1.45;}
+  #done .newbtn{margin-top:6vh;background:#F4EDE0;border:none;color:var(--ink);font-family:inherit;font-weight:700;
+    font-size:clamp(16px,2.4vw,28px);padding:.9em 2.4em;border-radius:999px;cursor:pointer;}
+
+  @media(max-width:520px){
+    :root{ --cols:3; --cu:.72; }
+    .rail{flex-basis:78px;padding:8px 5px;}
+    .cat{flex-direction:column;gap:3px;text-align:center;font-size:9.5px;padding:9px 3px;}
+    .cat .lbl{line-height:1.15;}
+    .cat .n{font-size:8px;margin-top:1px;}
+    .cat.on::after{display:none;}
+    .key{height:42px;font-size:15px;border-radius:8px;}
+    .kbrow{gap:4px;margin-bottom:4px;}
+    .key.wide,.key.space{font-size:10px;}
+  }
+
+  /* ===== QUANTITY PAD ===== */
+  #qtyScrim{position:absolute;inset:0;background:rgba(34,35,44,.55);z-index:44;opacity:0;pointer-events:none;transition:opacity .18s ease;}
+  #qtyScrim.show{opacity:1;pointer-events:auto;}
+  #qtyPad{position:absolute;left:50%;top:50%;z-index:45;width:min(calc(400px*var(--u)),92%);
+    transform:translate(-50%,-46%) scale(.94);opacity:0;pointer-events:none;
+    background:var(--cream);border-radius:calc(22px*var(--u));overflow:hidden;
+    box-shadow:0 30px 80px rgba(34,35,44,.45);transition:transform .2s cubic-bezier(.2,1.1,.4,1), opacity .18s ease;}
+  #qtyPad.show{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:auto;}
+  .qp-head{display:flex;align-items:center;gap:calc(12px*var(--u));padding:calc(16px*var(--u));background:#fff;border-bottom:1px solid var(--line);}
+  .qp-img{width:calc(54px*var(--u));height:calc(54px*var(--u));flex:0 0 auto;display:flex;align-items:center;justify-content:center;
+    background:var(--cream-soft);border-radius:calc(11px*var(--u));overflow:hidden;}
+  .qp-img img{max-width:100%;max-height:100%;object-fit:contain;}
+  .qp-meta{flex:1;min-width:0;}
+  .qp-meta b{display:block;font-size:calc(14px*var(--u));font-weight:600;color:var(--text);line-height:1.25;}
+  .qp-meta small{font-size:calc(11.5px*var(--u));color:var(--muted);}
+  .qp-x{background:none;border:none;font-size:calc(28px*var(--u));color:var(--muted);cursor:pointer;line-height:1;flex:0 0 auto;}
+
+  .qp-display{display:flex;align-items:center;justify-content:center;gap:calc(20px*var(--u));padding:calc(16px*var(--u));background:#fff;}
+  .qp-round{width:calc(50px*var(--u));height:calc(50px*var(--u));border:1.5px solid var(--line);border-radius:50%;background:var(--cream-soft);
+    color:var(--ink);font-size:calc(26px*var(--u));font-weight:700;cursor:pointer;line-height:1;flex:0 0 auto;}
+  .qp-round:active{background:var(--gold);color:#fff;border-color:var(--gold);}
+  .qp-num{min-width:calc(110px*var(--u));text-align:center;font-size:calc(46px*var(--u));font-weight:800;color:var(--ink);line-height:1;}
+  .qp-num small{display:block;font-size:calc(11px*var(--u));font-weight:600;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:calc(4px*var(--u));}
+
+  .qp-quick{display:flex;gap:calc(8px*var(--u));padding:0 calc(14px*var(--u)) calc(12px*var(--u));background:#fff;}
+  .qp-quick button{flex:1;background:var(--cream);border:1.5px solid var(--line);border-radius:calc(10px*var(--u));
+    font-family:inherit;font-weight:700;font-size:calc(13px*var(--u));color:var(--ink);padding:calc(11px*var(--u)) 0;cursor:pointer;}
+  .qp-quick button:active{background:var(--gold);color:#fff;border-color:var(--gold);}
+
+  .qp-keys{display:grid;grid-template-columns:repeat(3,1fr);gap:calc(7px*var(--u));padding:calc(12px*var(--u));}
+  .qp-keys button{height:calc(56px*var(--u));border:none;border-radius:calc(12px*var(--u));background:#fff;border:1px solid var(--line);
+    font-family:inherit;font-size:calc(24px*var(--u));font-weight:700;color:var(--ink);cursor:pointer;}
+  .qp-keys button:active{background:var(--ink);color:#F4EDE0;}
+  .qp-keys .fn{font-size:calc(15px*var(--u));font-weight:700;color:var(--muted);}
+
+  .qp-foot{display:flex;gap:calc(9px*var(--u));padding:0 calc(12px*var(--u)) calc(14px*var(--u));}
+  .qp-del{flex:0 0 auto;background:none;border:1.5px solid var(--line);border-radius:calc(13px*var(--u));color:#B2555A;
+    font-family:inherit;font-weight:700;font-size:calc(14px*var(--u));padding:0 calc(18px*var(--u));cursor:pointer;}
+  .qp-ok{flex:1;background:var(--gold);border:none;border-radius:calc(13px*var(--u));color:#fff;font-family:inherit;
+    font-weight:700;font-size:calc(18px*var(--u));padding:calc(17px*var(--u));cursor:pointer;box-shadow:0 8px 20px rgba(239,166,58,.32);}
+  .qp-ok:active{background:var(--gold-deep);}
+  .qp-sum{text-align:center;font-size:calc(12.5px*var(--u));color:var(--muted);font-weight:600;padding-bottom:calc(12px*var(--u));}
+  .qp-sum b{color:var(--ink);}
+
+  /* the qty number in a card stepper / cart line is now tappable */
+  .cstep span{cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,.5);text-underline-offset:2px;}
+  .stepper span{cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);text-underline-offset:2px;}
+</style>
+</head>
+<body>
+<div class="kiosk">
+
+  <div class="head">
+    <div class="searchbox" id="sbox" onclick="focusSearch()">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+      <span class="q ph" id="sq">Søk i hele sortimentet …</span>
+      <span class="caret"></span>
+      <button class="clr" onclick="event.stopPropagation();clearSearch()">×</button>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="rail" id="rail"></div>
+    <div class="grid-wrap" id="gridwrap">
+      <div class="gh-eyebrow" id="ghEyebrow">Sortiment</div>
+      <div class="gh-row"><h2 id="catTitle"></h2><span class="cnt" id="catCount"></span></div>
+      <div class="gh-rule"></div>
+      <div class="grid" id="grid"></div>
+      <div class="noresult" id="noresult" style="display:none"><b>Ingen treff</b><span>Prøv et annet søkeord.</span></div>
+    </div>
+  </div>
+
+  <div class="cartbar">
+    <div class="info"><b id="barCount">0 varer</b><small id="barHint">Trykk + på varene du vil bestille</small></div>
+    <div class="sp"></div>
+    <button class="seebtn" id="seeBtn" disabled onclick="openSheet()"><span class="c" id="seeCnt">0</span> Se bestilling</button>
+  </div>
+
+  <div id="kb"></div>
+
+  <div class="scrim" id="scrim" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="grab"></div>
+    <h3>Din bestilling
+      <button class="clearbtn" id="clearBtn" onclick="clearCart()">Tøm handlekurv</button>
+      <button class="x" onclick="closeSheet()">×</button>
+    </h3>
+    <div class="lines" id="lines"></div>
+    <div class="nameblock">
+      <label>Navn eller kundenr.</label>
+      <div class="fakeinput" id="refbox" onclick="focusRef()"><span id="refq" class="ph">f.eks. Oslo Matsenter / 1042</span><span class="caret"></span></div>
+    </div>
+    <div class="sheet-foot">
+      <div class="totalrow"><span>Sum · inkl. mva</span><b id="total">kr 0,00</b></div>
+      <button class="sendbtn" onclick="sendOrder()">Send bestilling</button>
+    </div>
+  </div>
+
+  <!-- QUANTITY PAD -->
+  <div id="qtyScrim" onclick="closeQty()"></div>
+  <div id="qtyPad">
+    <div class="qp-head">
+      <div class="qp-img" id="qpImg"></div>
+      <div class="qp-meta"><b id="qpName"></b><small id="qpSub"></small></div>
+      <button class="qp-x" onclick="closeQty()">&times;</button>
+    </div>
+    <div class="qp-display">
+      <button class="qp-round" onclick="qtyStep(-1)">&minus;</button>
+      <div class="qp-num"><span id="qpNum">0</span><small>antall</small></div>
+      <button class="qp-round" onclick="qtyStep(1)">+</button>
+    </div>
+    <div class="qp-quick">
+      <button onclick="qtyAdd(5)">+5</button>
+      <button onclick="qtyAdd(10)">+10</button>
+      <button onclick="qtyAdd(25)">+25</button>
+      <button onclick="qtyAdd(50)">+50</button>
+    </div>
+    <div class="qp-keys">
+      <button onclick="qtyType('1')">1</button><button onclick="qtyType('2')">2</button><button onclick="qtyType('3')">3</button>
+      <button onclick="qtyType('4')">4</button><button onclick="qtyType('5')">5</button><button onclick="qtyType('6')">6</button>
+      <button onclick="qtyType('7')">7</button><button onclick="qtyType('8')">8</button><button onclick="qtyType('9')">9</button>
+      <button class="fn" onclick="qtyClearNum()">C</button><button onclick="qtyType('0')">0</button><button class="fn" onclick="qtyBack()">&#9003;</button>
+    </div>
+    <div class="qp-sum" id="qpSum"></div>
+    <div class="qp-foot">
+      <button class="qp-del" onclick="qtyRemove()">Fjern</button>
+      <button class="qp-ok" onclick="qtyApply()">Oppdater</button>
+    </div>
+  </div>
+
+  <div id="attract" onclick="startOrder()">
+    <div class="glow"></div>
+    <svg class="lockup" viewBox="0 0 300.0 255.4" xmlns="http://www.w3.org/2000/svg" aria-label="Nordic Engros"><path fill="var(--gold-logo)" fill-rule="evenodd" d="M148.21,235.72L148.06,254.95L152.08,255.09L152.22,249.07L152.51,248.78L155.52,248.78L159.83,254.95L164.56,255.09L160.11,248.35L163.13,245.91L163.99,244.33L164.13,240.60L162.98,238.02L161.69,236.87L159.25,235.87ZM152.22,239.74L152.51,239.45L157.25,239.45L158.97,240.03L159.97,241.46L159.68,243.76L158.68,244.76L157.39,245.19L152.51,245.19L152.22,244.76ZM74.89,235.72L74.75,254.95L78.62,255.09L78.91,254.81L78.91,243.33L79.34,243.04L88.38,254.95L91.82,255.09L91.97,235.87L87.95,235.72L87.95,247.06L87.52,247.35L78.77,235.87ZM41.46,235.72L41.46,255.09L55.95,255.09L55.95,251.36L45.91,251.51L45.48,251.08L45.48,247.49L45.77,247.20L54.38,247.20L54.66,246.92L54.52,243.47L45.77,243.47L45.48,243.19L45.48,239.60L45.77,239.31L55.81,239.31L55.95,235.87ZM225.39,235.58L222.67,236.87L221.23,238.59L220.66,241.18L220.95,243.33L222.81,245.62L230.27,248.21L231.13,249.93L229.84,251.51L227.12,251.65L225.39,251.22L222.24,249.50L220.09,252.51L221.95,253.80L224.68,254.95L227.83,255.38L231.13,254.95L232.86,254.09L234.29,252.65L235.15,250.36L235.01,247.49L234.29,246.20L232.57,244.76L225.68,242.47L224.68,240.75L225.82,239.31L227.98,239.02L230.42,239.74L232.42,240.89L234.43,237.73L232.14,236.30L229.70,235.58ZM187.80,236.30L184.22,239.17L182.64,241.89L182.07,246.20L183.50,250.65L186.37,253.66L190.10,255.24L194.55,255.24L197.70,254.09L200.43,251.79L202.44,247.92L202.58,243.47L201.43,240.32L199.43,237.88L195.98,235.87L194.12,235.44L190.67,235.44ZM190.82,239.31L193.11,239.17L195.55,240.03L197.42,241.89L198.28,244.05L198.28,246.63L197.56,248.64L196.27,250.22L193.83,251.51L191.10,251.51L189.38,250.79L187.52,249.07L186.51,246.63L186.51,243.90L187.23,242.04L188.81,240.32ZM117.36,235.87L114.20,237.59L112.48,239.45L111.33,241.46L110.76,243.47L110.62,246.20L111.48,249.78L113.92,253.08L117.36,254.95L122.24,255.38L125.97,254.38L129.12,252.22L129.12,244.05L120.80,244.05L120.80,247.49L124.68,247.49L125.11,247.92L124.96,250.50L121.81,251.65L119.37,251.51L117.36,250.50L115.49,248.06L114.92,244.91L115.64,242.32L117.93,239.89L119.23,239.31L121.52,239.17L123.39,239.60L125.82,241.03L128.26,237.88L126.97,236.87L123.82,235.58L119.08,235.44ZM231.56,166.43L231.42,215.35L241.89,215.64L242.18,215.35L242.04,166.43ZM173.74,166.43L173.60,215.49L195.12,215.49L198.42,215.06L205.02,212.91L210.62,209.33L214.63,204.88L216.79,201.00L218.22,196.70L218.79,192.68L218.65,187.66L217.79,183.50L216.07,179.34L212.77,174.61L209.61,171.74L207.03,170.01L202.30,167.86L199.71,167.14L194.40,166.43ZM184.36,176.18L194.69,176.18L197.13,176.61L202.15,179.05L205.45,182.78L207.32,187.37L207.60,189.24L207.32,194.69L206.17,197.99L204.45,200.72L200.29,204.16L197.85,205.16L193.83,205.88L184.65,205.88L184.22,205.45ZM120.37,166.43L120.37,215.49L130.85,215.49L130.99,200.00L131.28,199.71L139.31,199.71L150.22,215.49L162.27,215.64L162.27,214.92L150.79,198.42L151.08,197.70L154.38,196.13L157.39,193.54L159.40,190.82L160.83,186.94L161.12,185.22L160.83,178.48L159.40,174.61L157.39,171.74L153.23,168.58L147.20,166.71ZM130.99,176.33L131.42,176.04L143.62,176.18L147.35,177.33L149.50,179.34L150.22,181.21L150.36,184.51L149.50,186.94L147.63,188.95L144.33,190.24L131.28,190.39L130.85,188.95ZM0.29,166.43L0.00,166.71L0.00,215.35L10.47,215.49L10.62,215.21L10.47,185.08L10.90,184.51L34.58,215.49L43.62,215.49L43.62,166.57L33.14,166.57L33.14,196.13L32.71,196.27L10.04,166.57ZM277.04,165.71L272.31,166.71L267.14,169.01L263.70,171.45L260.26,175.04L257.96,178.48L255.81,183.79L254.95,188.52L255.09,194.98L256.10,199.28L258.68,204.88L261.55,208.61L264.99,211.62L269.15,214.06L274.18,215.78L278.34,216.36L285.22,216.07L287.95,215.49L292.97,213.49L298.13,209.76L299.86,208.03L299.86,207.32L293.54,201.00L287.37,205.16L283.79,206.31L281.06,206.60L277.47,206.31L273.17,204.59L269.58,201.43L267.00,196.84L266.00,192.11L266.00,189.67L266.71,185.94L267.72,183.36L269.58,180.49L271.74,178.34L275.18,176.33L278.62,175.47L283.50,175.61L288.09,177.33L292.97,180.92L299.57,173.46L299.57,172.88L294.40,168.87L289.81,166.86L284.36,165.71ZM78.34,165.71L73.74,166.71L68.72,168.87L64.56,171.74L60.40,176.33L57.53,181.64L56.24,186.08L55.81,190.24L56.24,195.98L57.39,200.14L59.40,204.30L62.55,208.46L66.28,211.62L71.88,214.63L75.61,215.78L80.20,216.36L86.37,216.07L91.82,214.63L96.13,212.48L99.28,210.19L103.44,205.60L106.03,201.00L107.32,197.27L108.03,192.68L107.75,186.66L106.31,181.35L104.16,177.19L102.15,174.46L97.13,170.01L93.26,167.86L88.09,166.14L83.36,165.57ZM78.91,175.61L84.65,175.61L89.53,177.47L91.68,179.05L94.12,181.78L95.70,184.65L96.56,187.37L96.70,193.83L95.70,197.42L94.69,199.43L92.97,201.72L90.67,203.87L88.52,205.16L85.08,206.31L82.78,206.60L78.91,206.31L75.61,205.16L73.03,203.59L70.73,201.43L69.01,199.00L67.14,193.69L67.14,188.24L67.86,185.37L69.73,181.64L72.31,178.77L74.32,177.33ZM45.34,146.63L46.48,146.34L69.87,133.57L71.31,133.14L77.62,142.04L77.62,142.75L67.14,151.51L67.86,151.36L139.31,108.03L143.47,110.04L144.19,111.05L131.13,135.15L157.53,117.65L158.25,117.50L209.18,142.90L193.83,130.13L194.26,129.41L203.44,123.67L204.02,123.67L247.20,149.64L202.58,110.90L186.08,121.38L184.36,122.09L143.19,87.09L140.32,89.10L84.79,136.59L83.93,136.30L72.45,122.09ZM67.00,80.20L65.14,90.10L64.56,98.13L64.85,107.75L66.14,116.36L66.86,116.36L72.60,110.90L73.60,110.47L85.51,125.11L86.08,124.96L142.61,76.61L143.19,76.61L185.22,112.20L202.30,101.29L203.30,101.00L227.55,121.95L228.55,119.23L229.99,111.19L230.56,103.01L230.27,92.11L228.12,80.06L225.39,71.45L222.09,63.70L218.51,57.25L214.78,51.65L209.04,44.62L204.02,39.60L197.70,34.29L189.81,28.98L182.78,25.25L175.04,22.09L166.86,19.66L158.82,18.22L150.22,17.50L140.17,17.79L134.43,18.51L125.68,20.37L118.22,22.81L112.48,25.25L104.88,29.27L96.13,35.29L90.82,39.89L84.65,46.34L80.63,51.36L76.76,57.10L73.03,63.85L69.01,73.46ZM53.37,65.28L50.93,72.60L48.78,81.49L47.63,89.38L47.06,97.99L47.20,106.17L48.06,114.92L49.78,123.96L51.51,129.99L58.97,123.39L57.53,116.93L56.53,109.90L56.10,98.42L56.53,91.25L57.53,84.07L61.12,70.44L64.71,61.69L70.59,51.08L77.47,41.75L85.51,33.29L95.12,25.54L104.73,19.66L111.62,16.36L118.36,13.77L130.42,10.62L141.61,9.18L153.37,9.18L166.28,10.90L178.91,14.49L187.95,18.36L193.54,21.38L199.43,25.11L206.03,30.13L209.61,33.29L217.22,41.18L223.67,49.64L227.55,55.95L231.13,63.13L235.01,73.31L237.16,81.49L238.59,90.82L239.02,96.27L238.59,110.33L237.16,119.51L234.86,128.26L242.04,134.58L242.75,133.29L245.62,123.24L247.35,113.49L248.06,105.31L248.06,95.70L247.35,87.37L245.62,77.76L242.75,67.72L238.16,56.67L232.71,46.92L227.12,38.88L221.38,32.14L214.63,25.54L205.45,18.22L198.57,13.77L190.10,9.33L181.35,5.74L173.60,3.30L163.27,1.15L155.81,0.29L144.91,0.00L137.59,0.43L126.54,2.15L115.93,5.02L106.03,8.90L96.41,13.92L87.95,19.51L82.35,23.96L74.75,31.13L69.01,37.73L63.13,45.91L59.11,52.65Z"/><path fill="#FFFFFF" fill-rule="evenodd" d="M148.21,235.72L148.06,254.95L152.08,255.09L152.22,249.07L152.51,248.78L155.52,248.78L159.83,254.95L164.56,255.09L160.11,248.35L163.13,245.91L163.99,244.33L164.13,240.60L162.98,238.02L161.69,236.87L159.25,235.87ZM152.22,239.74L152.51,239.45L157.25,239.45L158.97,240.03L159.97,241.46L159.68,243.76L158.68,244.76L157.39,245.19L152.51,245.19L152.22,244.76ZM74.89,235.72L74.75,254.95L78.62,255.09L78.91,254.81L78.91,243.33L79.34,243.04L88.38,254.95L91.82,255.09L91.97,235.87L87.95,235.72L87.95,247.06L87.52,247.35L78.77,235.87ZM41.46,235.72L41.46,255.09L55.95,255.09L55.95,251.36L45.91,251.51L45.48,251.08L45.48,247.49L45.77,247.20L54.38,247.20L54.66,246.92L54.52,243.47L45.77,243.47L45.48,243.19L45.48,239.60L45.77,239.31L55.81,239.31L55.95,235.87ZM225.39,235.58L222.67,236.87L221.23,238.59L220.66,241.18L220.95,243.33L222.81,245.62L230.27,248.21L231.13,249.93L229.84,251.51L227.12,251.65L225.39,251.22L222.24,249.50L220.09,252.51L221.95,253.80L224.68,254.95L227.83,255.38L231.13,254.95L232.86,254.09L234.29,252.65L235.15,250.36L235.01,247.49L234.29,246.20L232.57,244.76L225.68,242.47L224.68,240.75L225.82,239.31L227.98,239.02L230.42,239.74L232.42,240.89L234.43,237.73L232.14,236.30L229.70,235.58ZM187.80,236.30L184.22,239.17L182.64,241.89L182.07,246.20L183.50,250.65L186.37,253.66L190.10,255.24L194.55,255.24L197.70,254.09L200.43,251.79L202.44,247.92L202.58,243.47L201.43,240.32L199.43,237.88L195.98,235.87L194.12,235.44L190.67,235.44ZM190.82,239.31L193.11,239.17L195.55,240.03L197.42,241.89L198.28,244.05L198.28,246.63L197.56,248.64L196.27,250.22L193.83,251.51L191.10,251.51L189.38,250.79L187.52,249.07L186.51,246.63L186.51,243.90L187.23,242.04L188.81,240.32ZM117.36,235.87L114.20,237.59L112.48,239.45L111.33,241.46L110.76,243.47L110.62,246.20L111.48,249.78L113.92,253.08L117.36,254.95L122.24,255.38L125.97,254.38L129.12,252.22L129.12,244.05L120.80,244.05L120.80,247.49L124.68,247.49L125.11,247.92L124.96,250.50L121.81,251.65L119.37,251.51L117.36,250.50L115.49,248.06L114.92,244.91L115.64,242.32L117.93,239.89L119.23,239.31L121.52,239.17L123.39,239.60L125.82,241.03L128.26,237.88L126.97,236.87L123.82,235.58L119.08,235.44ZM231.56,166.43L231.42,215.35L241.89,215.64L242.18,215.35L242.04,166.43ZM173.74,166.43L173.60,215.49L195.12,215.49L198.42,215.06L205.02,212.91L210.62,209.33L214.63,204.88L216.79,201.00L218.22,196.70L218.79,192.68L218.65,187.66L217.79,183.50L216.07,179.34L212.77,174.61L209.61,171.74L207.03,170.01L202.30,167.86L199.71,167.14L194.40,166.43ZM184.36,176.18L194.69,176.18L197.13,176.61L202.15,179.05L205.45,182.78L207.32,187.37L207.60,189.24L207.32,194.69L206.17,197.99L204.45,200.72L200.29,204.16L197.85,205.16L193.83,205.88L184.65,205.88L184.22,205.45ZM120.37,166.43L120.37,215.49L130.85,215.49L130.99,200.00L131.28,199.71L139.31,199.71L150.22,215.49L162.27,215.64L162.27,214.92L150.79,198.42L151.08,197.70L154.38,196.13L157.39,193.54L159.40,190.82L160.83,186.94L161.12,185.22L160.83,178.48L159.40,174.61L157.39,171.74L153.23,168.58L147.20,166.71ZM130.99,176.33L131.42,176.04L143.62,176.18L147.35,177.33L149.50,179.34L150.22,181.21L150.36,184.51L149.50,186.94L147.63,188.95L144.33,190.24L131.28,190.39L130.85,188.95ZM0.29,166.43L0.00,166.71L0.00,215.35L10.47,215.49L10.62,215.21L10.47,185.08L10.90,184.51L34.58,215.49L43.62,215.49L43.62,166.57L33.14,166.57L33.14,196.13L32.71,196.27L10.04,166.57ZM277.04,165.71L272.31,166.71L267.14,169.01L263.70,171.45L260.26,175.04L257.96,178.48L255.81,183.79L254.95,188.52L255.09,194.98L256.10,199.28L258.68,204.88L261.55,208.61L264.99,211.62L269.15,214.06L274.18,215.78L278.34,216.36L285.22,216.07L287.95,215.49L292.97,213.49L298.13,209.76L299.86,208.03L299.86,207.32L293.54,201.00L287.37,205.16L283.79,206.31L281.06,206.60L277.47,206.31L273.17,204.59L269.58,201.43L267.00,196.84L266.00,192.11L266.00,189.67L266.71,185.94L267.72,183.36L269.58,180.49L271.74,178.34L275.18,176.33L278.62,175.47L283.50,175.61L288.09,177.33L292.97,180.92L299.57,173.46L299.57,172.88L294.40,168.87L289.81,166.86L284.36,165.71ZM78.34,165.71L73.74,166.71L68.72,168.87L64.56,171.74L60.40,176.33L57.53,181.64L56.24,186.08L55.81,190.24L56.24,195.98L57.39,200.14L59.40,204.30L62.55,208.46L66.28,211.62L71.88,214.63L75.61,215.78L80.20,216.36L86.37,216.07L91.82,214.63L96.13,212.48L99.28,210.19L103.44,205.60L106.03,201.00L107.32,197.27L108.03,192.68L107.75,186.66L106.31,181.35L104.16,177.19L102.15,174.46L97.13,170.01L93.26,167.86L88.09,166.14L83.36,165.57ZM78.91,175.61L84.65,175.61L89.53,177.47L91.68,179.05L94.12,181.78L95.70,184.65L96.56,187.37L96.70,193.83L95.70,197.42L94.69,199.43L92.97,201.72L90.67,203.87L88.52,205.16L85.08,206.31L82.78,206.60L78.91,206.31L75.61,205.16L73.03,203.59L70.73,201.43L69.01,199.00L67.14,193.69L67.14,188.24L67.86,185.37L69.73,181.64L72.31,178.77L74.32,177.33ZM45.34,146.63L46.48,146.34L69.87,133.57L71.31,133.14L77.62,142.04L77.62,142.75L67.14,151.51L67.86,151.36L139.31,108.03L143.47,110.04L144.19,111.05L131.13,135.15L157.53,117.65L158.25,117.50L209.18,142.90L193.83,130.13L194.26,129.41L203.44,123.67L204.02,123.67L247.20,149.64L202.58,110.90L186.08,121.38L184.36,122.09L143.19,87.09L140.32,89.10L84.79,136.59L83.93,136.30L72.45,122.09ZM53.37,65.28L50.93,72.60L48.78,81.49L47.63,89.38L47.06,97.99L47.20,106.17L48.06,114.92L49.78,123.96L51.51,129.99L58.97,123.39L57.53,116.93L56.53,109.90L56.10,98.42L56.53,91.25L57.53,84.07L61.12,70.44L64.71,61.69L70.59,51.08L77.47,41.75L85.51,33.29L95.12,25.54L104.73,19.66L111.62,16.36L118.36,13.77L130.42,10.62L141.61,9.18L153.37,9.18L166.28,10.90L178.91,14.49L187.95,18.36L193.54,21.38L199.43,25.11L206.03,30.13L209.61,33.29L217.22,41.18L223.67,49.64L227.55,55.95L231.13,63.13L235.01,73.31L237.16,81.49L238.59,90.82L239.02,96.27L238.59,110.33L237.16,119.51L234.86,128.26L242.04,134.58L242.75,133.29L245.62,123.24L247.35,113.49L248.06,105.31L248.06,95.70L247.35,87.37L245.62,77.76L242.75,67.72L238.16,56.67L232.71,46.92L227.12,38.88L221.38,32.14L214.63,25.54L205.45,18.22L198.57,13.77L190.10,9.33L181.35,5.74L173.60,3.30L163.27,1.15L155.81,0.29L144.91,0.00L137.59,0.43L126.54,2.15L115.93,5.02L106.03,8.90L96.41,13.92L87.95,19.51L82.35,23.96L74.75,31.13L69.01,37.73L63.13,45.91L59.11,52.65Z"/></svg>
+    <div class="eyebrow">Selvbetjent bestilling</div>
+    <div class="attract-h">Bestill fra<br>hele sortimentet</div>
+    <div class="attract-sub">Søk eller bla i kategoriene, legg i kurven og send bestillingen.</div>
+    <div class="tap-pill">👆 Trykk for å starte</div>
+    <div class="foot">Persveien 20 · Oslo</div>
+  </div>
+
+  <div id="done">
+    <div class="check">✓</div>
+    <h1>Bestilling sendt!</h1>
+    <div class="ordno" id="doneNo">NE-0000</div>
+    <p>Vi pakker bestillingen. Du får beskjed når den er klar.</p>
+    <button class="newbtn" onclick="goAttract()">Ny bestilling</button>
+  </div>
+
+</div>
+
+<script>
+const CATS=[{"id": "frys", "name": "Frysevarer", "ic": "🧊", "n": 286}, {"id": "kjol", "name": "Kjølevarer", "ic": "🧀", "n": 493}, {"id": "sjok", "name": "Sjokolader & Snacks", "ic": "🍫", "n": 788}, {"id": "drikke", "name": "Juice & Drikkevarer", "ic": "🧃", "n": 610}, {"id": "chips", "name": "Chips", "ic": "🥔", "n": 179}, {"id": "energi", "name": "Energidrikker", "ic": "⚡", "n": 85}, {"id": "nyheter", "name": "Nyheter", "ic": "✨", "n": 3316}, {"id": "tilbud", "name": "Tilbud", "ic": "🏷️", "n": 17}, {"id": "nonfood", "name": "Non food", "ic": "🧴", "n": 342}, {"id": "sotsaker", "name": "Søtsaker (AR)", "ic": "🍬", "n": 195}, {"id": "korn", "name": "Kornprodukter & Ris", "ic": "🌾", "n": 164}, {"id": "krydderar", "name": "Krydder (AR)", "ic": "🌶️", "n": 162}, {"id": "kjeks", "name": "Kjeks & Småkaker", "ic": "🍪", "n": 145}, {"id": "syltet", "name": "Grønnsaker i lake", "ic": "🥒", "n": 141}, {"id": "te", "name": "Te & Kaffe", "ic": "☕", "n": 136}, {"id": "krydder", "name": "Krydder, Saus & Buljong", "ic": "🧂", "n": 122}, {"id": "tekaffear", "name": "Kaffe & Te (AR)", "ic": "☕", "n": 94}, {"id": "snacks", "name": "Snacks", "ic": "🥨", "n": 93}, {"id": "sauser", "name": "Sauser", "ic": "🥫", "n": 90}, {"id": "nudler", "name": "Nudler", "ic": "🍜", "n": 89}, {"id": "oljer", "name": "Oljer & Eddik", "ic": "🫒", "n": 85}, {"id": "drikkear", "name": "Drikkevarer (AR)", "ic": "🥤", "n": 80}, {"id": "notter", "name": "Nøtter & Frø", "ic": "🥜", "n": 73}, {"id": "vaskemidler", "name": "Vaskemidler", "ic": "🧼", "n": 63}, {"id": "hermetikk", "name": "Hermetikk", "ic": "🥫", "n": 67}, {"id": "majones", "name": "Majones & Sennep", "ic": "🥚", "n": 60}, {"id": "oliven", "name": "Oliven", "ic": "🫒", "n": 59}, {"id": "pasta", "name": "Pasta & Spaghetti", "ic": "🍝", "n": 58}, {"id": "kake", "name": "Brød & Kaker", "ic": "🍰", "n": 56}, {"id": "vaffel", "name": "Vaffelkjeks", "ic": "🧇", "n": 53}, {"id": "bakevarer", "name": "Bakevarer", "ic": "🥐", "n": 51}, {"id": "supper", "name": "Supper", "ic": "🍲", "n": 47}, {"id": "dadler", "name": "Dadler", "ic": "🌴", "n": 40}, {"id": "torket", "name": "Tørket Frukt/Sopp/Frø", "ic": "🍇", "n": 40}, {"id": "barnegodteri", "name": "Barnegodteri", "ic": "🧸", "n": 38}, {"id": "tahina", "name": "Tahina & Halawa (AR)", "ic": "🍯", "n": 38}, {"id": "torrmelk", "name": "Tørrmelk & Kondensert", "ic": "🥛", "n": 37}, {"id": "tomat", "name": "Tomatpuré & Passata", "ic": "🍅", "n": 35}, {"id": "fisk", "name": "Fiskeprodukter", "ic": "🐟", "n": 27}, {"id": "honning", "name": "Honning", "ic": "🍯", "n": 27}, {"id": "frokost", "name": "Frokostblandinger", "ic": "🥣", "n": 24}, {"id": "palegg", "name": "Pålegg", "ic": "🥪", "n": 22}, {"id": "frukt", "name": "Frukt & Grønnsaker", "ic": "🥦", "n": 17}, {"id": "kakao", "name": "Kakaopulver", "ic": "🍫", "n": 2}];
+const PRODUCTS=[{"id":100,"cat":"frys","nm":"Capri Sun Ice Pops 400g X 210","vd":"Capri Sun","unit":29,"stock":-1,"sku":"6245","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/4cb98352b7b3b7b16caf93b42e690416.png?v=1782639698"},{"id":101,"cat":"frys","nm":"Friends Of Asian Frozen Dessert Mango 75gr x12","vd":"Friends Of Asian","unit":39,"stock":-32,"sku":"6191","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/1_460468c3-e25c-44b3-9a17-57d8f03109e4.png?v=1782477684"},{"id":102,"cat":"frys","nm":"Friends Of Asian Frozen Dessert Peach 75gr x12","vd":"Friends Of Asian","unit":39,"stock":47,"sku":"6192","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/2_6d87249d-6032-4ddf-be06-13ef906c1f62.png?v=1782477809"},{"id":103,"cat":"frys","nm":"Friends Of Asian Frozen Dessert Lemon 75gr x 12","vd":"Friends Of Asian","unit":39,"stock":90,"sku":"6193","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/3_7edc2038-405e-4933-ac95-c09919b8a1fd.png?v=1782478077"},{"id":104,"cat":"frys","nm":"Friends Of Asian Frozen Dessert Orange 75gr x 12","vd":"Friends Of Asian","unit":39,"stock":30,"sku":"6194","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/4_ab9c00f7-1bbc-4db3-9a20-28d8d7046c82.png?v=1782478103"},{"id":105,"cat":"frys","nm":"Friends Of Asian Frozen Dessert Strawberry 75gr x 12","vd":"Friends Of Asian","unit":39,"stock":-4,"sku":"6195","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/5_43b4231c-0cc1-4dc0-b3ad-8fcdf82dc2eb.png?v=1782477947"},{"id":106,"cat":"frys","nm":"Friends Of Asian Frozen Dessert Grape 75gr x 12","vd":"Friends Of Asian","unit":39,"stock":-4,"sku":"6196","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Untitleddesign-2026-06-30T123601.136.png?v=1782843687"},{"id":107,"cat":"frys","nm":"Friends Of Asian Frozen Dessert Banana 75gr x 12","vd":"Friends Of Asian","unit":39,"stock":-1,"sku":"6197","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/7_2f9f1f31-b8f0-47e3-95cc-0779dead4351.png?v=1782478031"},{"id":108,"cat":"frys","nm":"Frosty Bites Ice Cream Grape 12 X 150g","vd":"Frosty Bites","unit":80,"stock":0,"sku":"6115","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Untitleddesign-2026-06-15T092725.310.png?v=1781504861"},{"id":109,"cat":"frys","nm":"Steak Shaped Frozen Dessert Chocolate Milk 80g X 24","vd":"NiCEME","unit":35,"stock":11,"sku":"6117","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/8_1fac5905-c2d1-4150-864b-011e47fbf760.png?v=1781506553"},{"id":110,"cat":"frys","nm":"Steak Shaped Frozen Dessert Strawberry-Milk 80g X 24","vd":"NiCEME","unit":35,"stock":12,"sku":"6118","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/7_19cc3c41-1e26-4638-b27c-095846dcff84.png?v=1781506681"},{"id":111,"cat":"frys","nm":"Chicken Leg Chocolate Ice Cream 70g X 24","vd":"NiCEME","unit":40,"stock":7,"sku":"6119","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/9_5719a913-2278-47e7-82aa-4ab8f3131a2e.png?v=1781506823"},{"id":112,"cat":"frys","nm":"Chicken Leg Vanilla Ice Cream 70g X 24","vd":"NiCEME","unit":40,"stock":0,"sku":"6120","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/10_49d4509d-b9a8-46f4-a492-cc0e48634fbe.png?v=1781506898"},{"id":113,"cat":"frys","nm":"Sedir Hele Rapphøner (Rapphöna Hel) 12 X 340g","vd":"Sedir","unit":122,"stock":0,"sku":"5894","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/PartridgeWhole12__c.340g_Sedir.png?v=1776080405"},{"id":114,"cat":"frys","nm":"Sedir Kalveføtter Frosne Dawn (ca. 20 kg/eske)","vd":"Sedir","unit":95,"stock":23,"sku":"5895","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/VealFeetFrozenSawnSedir_approx.20kg_Box.png?v=1776080625"},{"id":115,"cat":"frys","nm":"Lamm Tunga Silver N.Z Fryst 25 Kg","vd":"Sedir","unit":148,"stock":-1,"sku":"5896","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LambTongueSilverN.ZFrozen.png?v=1776092320"},{"id":116,"cat":"frys","nm":"Lamm Hode Med Skinn Fryst 2kg X 5st","vd":"Sedir","unit":160,"stock":23,"sku":"5897","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LambHeadWithSkinFrozen2kg_5pcs.png?v=1776092701"},{"id":117,"cat":"frys","nm":"Sedir Vaktler 12 X(4p) (110-130 g)","vd":"Sedir","unit":116,"stock":20,"sku":"5898","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Vaktler12__4p_110-130g_Sedir.png?v=1776092783"},{"id":118,"cat":"frys","nm":"Margben Fryst Halal 2kg x (Ca 25 kg I Kartong)","vd":"Sedir","unit":100,"stock":15,"sku":"5899","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/MarrowBoneFrozenHalalSides.png?v=1776092829"},{"id":119,"cat":"frys","nm":"Pizza Slice Kebab 330g x 10","vd":"SEDIR","unit":54,"stock":0,"sku":"5048","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/PizzaSliceKebab330gx10.png?v=1769170606"},{"id":120,"cat":"frys","nm":"Pizza Scraper Sucuk 330g x 10","vd":"SEDIR","unit":52,"stock":2,"sku":"5049","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/PizzaScraperSucuk330gx10.png?v=1769170673"},{"id":121,"cat":"frys","nm":"Lamm Mage Fryst pris pr kg (cirka 10 kg/Låda)","vd":"SEDIR","unit":0,"stock":4,"sku":"5053","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LammMageFryst_cirka10kg_Lada_18544c52-f94d-49e6-8de0-5aa45c00f69d.png?v=1769171334"},{"id":122,"cat":"frys","nm":"Pizza Kallavi Chicken 10 X 330 g","vd":"Sedir","unit":54,"stock":0,"sku":"5900","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/BreadIraqiSalmon3-p12.png?v=1776093742"},{"id":123,"cat":"frys","nm":"Tilapia Fisk Svart (Cleaned) (550-750g) x 10kg","vd":"Sedir","unit":38,"stock":13,"sku":"4562","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/5038_1_.pngd_306684fe-f51e-4f0d-b02d-7b73a050cb4b.png?v=1780485451"},{"id":124,"cat":"frys","nm":"AGADEER Kyllinghjerte 12x300g","vd":"AGADEER","unit":45,"stock":70,"sku":"5271","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Kycklinghjarta12x300gAGADEER.png?v=1772459065"},{"id":125,"cat":"frys","nm":"AGADEER Kyllinglever 12x300g","vd":"AGADEER","unit":37,"stock":100,"sku":"5270","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Kycklinglever12x300gAGADEER.png?v=1772459005"},{"id":126,"cat":"frys","nm":"AGADEER Kyllingmage 12x300g","vd":"AGADEER","unit":37,"stock":42,"sku":"5272","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Kycklingmage12x300gAGADEER.png?v=1772459122"},{"id":127,"cat":"frys","nm":"Tilapia Fish Black (800-1kg) x 10kg","vd":"Marsh","unit":44,"stock":46,"sku":"5038","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/5038_e33578b9-7f61-48c5-83ba-2fb3b1fb0a8b.png?v=1780485356"},{"id":128,"cat":"frys","nm":"Kubba Mosel Almond & Raisin 12x1-p 500 g","vd":"sedir","unit":68,"stock":6,"sku":"5045","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/KubbaMoselAlmond_Raisin12_1-p500g.png?v=1769170131"},{"id":129,"cat":"frys","nm":"Kalvmage Fryst Sedir Halal pris pr kg (approx. 5-6 kg/Box)","vd":"sedir","unit":0,"stock":3,"sku":"5046","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/KalvmageFrystSedirHalal_approx.5-6kg_Box_df118f79-7399-44a9-af34-5831fd477f56.png?v=1769170413"},{"id":130,"cat":"frys","nm":"Kallavi Pide Cheese 360g x 10","vd":"SEDIR","unit":52,"stock":1,"sku":"5047","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/KallaviPideCheese360gx10.png?v=1769170511"},{"id":131,"cat":"frys","nm":"Sedir Shawarma Doner Kebab 450g X 14","vd":"Sedir","unit":99,"stock":0,"sku":"5892","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/ShawarmaDonerKebab450g_14Sedir.png?v=1776080030"},{"id":132,"cat":"frys","nm":"Sedir Shawrma Kycklingkebab 450g X 16","vd":"Sedir","unit":99,"stock":-1,"sku":"5893","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/ShawarmaChickenKebab450g_16Sedir.png?v=1776080202"},{"id":133,"cat":"frys","nm":"Bread Iraqi Samon 3p X 12","vd":"Sedir","unit":26,"stock":0,"sku":"5901","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/BreadIraqiSalmon3-p_12.png?v=1776093151"},{"id":134,"cat":"frys","nm":"Tarta cake \"Black Forest\" 400g X 2","vd":"Tarta","unit":88,"stock":19,"sku":"5472","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Tartacake_BlackForest_400gX2.png?v=1773999764"},{"id":135,"cat":"frys","nm":"Tarta Brandteiggebaeck “Franzoes.Eclair“ 275g X 3","vd":"Dayseaday","unit":64,"stock":39,"sku":"5470","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaBrandteiggebaeck_Franzoes.Eclair_275gX3.png?v=1773999658"},{"id":136,"cat":"frys","nm":"Tarta Torte \"Medovik\" approx 450g X 2","vd":"Tarta","unit":89,"stock":12,"sku":"5467","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaTorte_Medovik_approx.450gX2.png?v=1773999416"},{"id":137,"cat":"frys","nm":"Tarta cake “Bubble Cake” 400g X 2","vd":"Tarta","unit":91,"stock":-2,"sku":"5460","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Tartacake_BubbleCake_400gX2.png?v=1773998574"},{"id":138,"cat":"frys","nm":"Tarta Torte Prazhskij 850g x 2","vd":"Tarta","unit":170,"stock":14,"sku":"5448","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaTortePrazhskij850gx2.png?v=1773997739"},{"id":139,"cat":"frys","nm":"Tarta Torte Prazhskij with cherries 850g x 2","vd":"Tarta","unit":165,"stock":-4,"sku":"5446","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaTortePrazhskijwithcherries850gx2.png?v=1773997604"},{"id":140,"cat":"frys","nm":"Tarta cake Smetannik bubble 450g X 3","vd":"Tarta","unit":88,"stock":4,"sku":"5444","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartacakeSmetannikbubble450gX3.png?v=1773997458"},{"id":141,"cat":"frys","nm":"Tart pastry \"TART CHERRY\" 240g x 6","vd":"Tarta","unit":39,"stock":0,"sku":"5445","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Tartpastry_TARTCHERRY_240gx6.png?v=1773997531"},{"id":142,"cat":"frys","nm":"FRUSCH Cake Prasdnichnij Kyiv 900g X 2","vd":"FRUSCH","unit":173,"stock":16,"sku":"5443","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/FRUSCHCakePrasdnichnijKyiv900gX2.png?v=1773997411"},{"id":143,"cat":"frys","nm":"Tart Cake Nuts Condensed Milk 285g (12 St) X 6","vd":"Tart","unit":41,"stock":9,"sku":"5442","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartCakeNutsCondensedMilk285g_12pcs_X6_3266588f-b82c-440b-bb27-6db01caf2813.png?v=1773997269"},{"id":144,"cat":"frys","nm":"Tarta Torte Legenda Kieva with peanuts 450g X 2","vd":"Tarta","unit":105,"stock":16,"sku":"5429","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaTorteLegendaKievawithpeanuts450gX2.png?v=1773996162"},{"id":145,"cat":"frys","nm":"Tarta Eclair with Caramel 250g x 3","vd":"Tarta","unit":64,"stock":70,"sku":"4931","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaChouxPastry_EclairwithCaramel_250gx3.png?v=1764927582"},{"id":146,"cat":"frys","nm":"Tarta cake Ptitschje Moloko 300g x 4","vd":"Tarta","unit":52,"stock":1,"sku":"4932","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartacakePtitschjeMoloko300gx4.png?v=1764927648"},{"id":147,"cat":"frys","nm":"Tarta Eclair with Cream 300g x 3","vd":"Tarta","unit":65,"stock":65,"sku":"4930","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaChouxPastry_EclairwithCream_300gx3.png?v=1764927496"},{"id":148,"cat":"frys","nm":"Tarta Cake Waffle Cake with Condensed Milk 180g x 6","vd":"Tarta","unit":34,"stock":3,"sku":"4929","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaCakeWaffleCakewithCondensedMilk180gx6.png?v=1764927421"},{"id":149,"cat":"frys","nm":"Tarta Napoleon Tart Cake 370g x 4","vd":"Tarta","unit":88,"stock":25,"sku":"4928","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaNapoleonTartCake370gx4.png?v=1764927370"},{"id":150,"cat":"frys","nm":"Tarta Cake Kartoschka 420g x 6","vd":"Tarta","unit":89,"stock":28,"sku":"4927","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaCakeKartoschka420gx6.png?v=1764927300"},{"id":151,"cat":"frys","nm":"Tarta Torte Medovik Honey cake 450g x 3","vd":"Tarta","unit":80,"stock":0,"sku":"4938","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaTorteMedovik450gx3.png?v=1764928232"},{"id":152,"cat":"frys","nm":"Tarta Cake Wafer Roll Condensed Milk 200g x 8","vd":"Tarta","unit":34,"stock":13,"sku":"4926","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TartaCakeWaferRollCondensedMilk200gx8.png?v=1764927183"},{"id":153,"cat":"frys","nm":"Rohu Fisk Gatthan (Cleaned) 2kg-upp 20kg","vd":"Sedir","unit":43,"stock":-11,"sku":"4563","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/RohuFiskGatthan2kg-upp20kgRohuFishStreet2kg-up20kg.png?v=1761311415"},{"id":154,"cat":"frys","nm":"Mirgal Fisk Shapoot (Gutted) 3kg++opp 20kg","vd":"Sedir","unit":70,"stock":-1,"sku":"4564","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/MirgalFiskShapoot3kgupp20kgMirgalFishShampoo3kgupto20kg.png?v=1761311544"},{"id":155,"cat":"frys","nm":"Fisk Seabass (Havsabborre) 900g+/bag x 10","vd":"Sedir","unit":93,"stock":0,"sku":"4565","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/FiskSeabass_Havsabborre_900g_10FishSeaBass900g_10.png?v=1761311613"},{"id":156,"cat":"frys","nm":"Tilapia Fisk Rød whole cleaned (500-800g pc) x 10kg","vd":"Sedir","unit":54,"stock":4,"sku":"4566","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TilapiaFiskRod_500-800g__10kgTilapiaFishRed_500-800g__10kg.png?v=1761311706"},{"id":157,"cat":"frys","nm":"Tilapia Fisk File 3-5 OZ 1kg x 10","vd":"Sedir","unit":63,"stock":10,"sku":"4567","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/TilapiaFiskFile3-5OZ10_1kgTilapiaFishFilet3-5OZ10_1kg.png?v=1761311960"},{"id":158,"cat":"frys","nm":"Fisk Makrell Horse 5/7 B 810g x 10","vd":"Sedir","unit":42,"stock":-1,"sku":"4568","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/FiskMakrillHorse5_7B900g_10FishMackerelHorse5_7B900g_10.png?v=1761312059"},{"id":159,"cat":"frys","nm":"Fisk Red Mullet 800g x 10 Marsh","vd":"Sedir","unit":68,"stock":-1,"sku":"4569","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/FiskRedMullet800g_10MarshFishRedMullet800g_10Marsh.png?v=1761312117"},{"id":160,"cat":"frys","nm":"Zobedi Fisk Silver (200g-300g) x 10 kg","vd":"Sedir","unit":181,"stock":0,"sku":"4570","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/ZobediFiskSilver_200g-300g_10kgZobediFishSilver_200g-300g_10kg.png?v=1761312215"},{"id":161,"cat":"frys","nm":"Sib Fisch Hake eyes, headless, frozen 800g x 8","vd":"Sib","unit":57,"stock":8,"sku":"4933","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SibFischHakeeyes_headless_frozen800gx8.png?v=1764927755"},{"id":162,"cat":"frys","nm":"Sib Fisch Baltic Herrings with head, not gutted, 1kg x 10","vd":"Sib","unit":43,"stock":2,"sku":"4934","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SibFischBalticHerringswithhead_notgutted_1kgx10.png?v=1764927879"},{"id":163,"cat":"frys","nm":"Savushkin Top Frozen Curd Snack Hazelnut Filling 40g x 18","vd":"Medvedja","unit":13,"stock":0,"sku":"599","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinTOPFrozenCurdSnack_HazelnutFilling_40g_BYSavushkinQuarkriegelTOPmitHaselnussgeschmack40g_TK.png?v=1754393171"},{"id":164,"cat":"frys","nm":"Savushkin Frozen Glazed Curd Snack Moya Alenka 40g x 18","vd":"Medvedja","unit":13,"stock":-3,"sku":"594","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinFrozenGlazedCurdSnack_MoyaAlenka_40g_BYSavuschkinQuarkriegelMojaAlenkainkakaohal.40g_TK.png?v=1754392384"},{"id":165,"cat":"frys","nm":"Savushkin TOP Frozen Curd Snack Raspberry Filling 40g x 18","vd":"Medvedja","unit":13,"stock":-1,"sku":"597","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinTOPFrozenCurdSnack_RaspberryFilling_40g_BYSavuschkinQuarkriegelTOPm.FullungHimbeeren40g_TK.png?v=1754392917"},{"id":166,"cat":"frys","nm":"Savushkin TOP Frozen Curd Snack Strawberry Filling 40g x 18","vd":"Medvedja","unit":13,"stock":0,"sku":"596","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinTOPFrozenCurdSnack_StrawberryFilling_40g_BYSavuschkinQuarkriegelTOPm.FullungErdbeere40g_TK_6d3c8d38-c317-4f1b-9b9f-19ef76e1b339.png?v=1754392811"},{"id":167,"cat":"frys","nm":"Savushkin Frozen Glazed Curd Snack Condensed Milk & Vanilla 40g x 18","vd":"Medvedja","unit":10,"stock":4,"sku":"592","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinFrozenGlazedCurdSnack_CondensedMilk_Vanilla_40g_BYSavuschkinQuarkriegelm.Kondensm.u.Vanillegeschm.40g_TK_dc5c11c2-70af-4b87-9377-46d70da951da.png?v=1754392239"},{"id":168,"cat":"frys","nm":"3 Medvedia Frozen Cotton Candy Ice Cream Stick 70g x 28","vd":"Medvedja","unit":13,"stock":0,"sku":"589","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/3MedvediaFrozenCottonCandyIceCream_Stick_70g_3MedvediaEis_Zuckerwatte_amStiel_12_70g.png?v=1754391886"},{"id":169,"cat":"frys","nm":"Monaco Frozen Peanut Butter Ice Cream Bar 75g x 28","vd":"Medvedja","unit":13,"stock":0,"sku":"581","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/MonacoFrozenPeanutButterIceCreamBar_75g_MonacoEisErdnussPasteamStiel_10_75g.png?v=1754390902"},{"id":170,"cat":"frys","nm":"Limo Frozen Ice Cream Condensed Milk & Biscuit Flavor 60g x 30","vd":"Limo","unit":13,"stock":36,"sku":"575","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LimoFrozenIceCream_CondensedMilk_BiscuitFlavor_60g_LimoEisKorivkaMuuKondensm._Keksgeschm._Waffelbech.60g.png?v=1754389397"},{"id":171,"cat":"frys","nm":"Savushkin Frozen Glazed Curd Snack Coffee & Caramel 40g x 18","vd":"Medvedja","unit":13,"stock":0,"sku":"598","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinFrozenGlazedCurdSnack_Coffee_Caramel_40g_BYSavushkinQuarkriegelKaffe-Karamelgeschmack32_40gTK.png?v=1754393098"},{"id":172,"cat":"frys","nm":"Kastan Frozen Ice Cream Bar Vanilla-Strawberry-Chocolate Coating 70g x 34","vd":"Medvedja","unit":13,"stock":0,"sku":"650","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/KastanFrozenIceCreamBar_Vanilla_Strawberry_ChocolateCoating_70g_KastanEisVanille_Erdbeere_GlasuramStiel_10_70g.png?v=1754393288"},{"id":173,"cat":"frys","nm":"Savushkin Frozen Glazed Curd Snack Coconut & Almond 40g x 18","vd":"Medvedja","unit":10,"stock":2,"sku":"595","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinFrozenGlazedCurdSnack_Coconut_Almond_40g_BYSavuschkinQuarkriegelm.Kokos-Mandelinkakaohal.40g_TK.png?v=1754392734"},{"id":174,"cat":"frys","nm":"Savushkin Frozen Glazed Curd Snack Vanilla 40g x 18","vd":"Medvedja","unit":10,"stock":2,"sku":"591","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinFrozenGlazedCurdSnack_Vanilla_40g_BYSavuschkinQuarkriegelm.Vanillegeschminkakaohal.40g_TK.png?v=1754392105"},{"id":175,"cat":"frys","nm":"3 Medvedja Frozen Royal Sorbet Ice Cream 75g x 28","vd":"Medvedja","unit":13,"stock":14,"sku":"582","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/3MedvedjaFrozenRoyalSorbetIceCream_WaffleCup_75g_3MedvedjaEisRoyalSorbetWaffelbecher_12_75g.png?v=1755266203"},{"id":176,"cat":"frys","nm":"3 Medvedia Frozen Cherry Ice Cream Stick 80g x 28","vd":"Medvedja","unit":13,"stock":-1,"sku":"590","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/3MedvediaFrozenCherryIceCream_Stick_80g_3MedvediaEis_Fruchtbeere_amStiel_12_80g.png?v=1754391992"},{"id":177,"cat":"frys","nm":"Rud Frozen Vanilla Ice Cream Waffle Cup 150ml (70g) x 30","vd":"Medvedja","unit":13,"stock":0,"sku":"588","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/RudFrozenVanillaIceCream_WaffleCup_150ml_70g_RudEisPLRKindertraumVanilleimWaffelbecher150ml70g.png?v=1754391884"},{"id":178,"cat":"frys","nm":"3 Medvedja Frozen Cocoa Flavor Ice Cream Waffle Cup 70g x 45","vd":"Medvedja","unit":13,"stock":-1,"sku":"585","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/3MedvedjaFrozenCocoaFlavorIceCream_WaffleCup_70g_3MedvedjaEisSkaskamitKakaoWaffelb._3_5_70g.png?v=1754391372"},{"id":179,"cat":"frys","nm":"3 Medvedja Kastan Frozen Chocolate Ice Cream Bar 70g x 34","vd":"Medvedja","unit":13,"stock":-2,"sku":"580","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/3MedvedjaKastanFrozenChocolateIceCreamBar_70g_3MedvedjaKastanEisSchokoPlombir_GlasuramSt._10_70g_bb08db32-3717-4853-bf76-89155165078b.png?v=1754390010"},{"id":180,"cat":"frys","nm":"3 Medvedja Frozen Vanilla Flavor Ice Cream Waffle Cup 70g x 45","vd":"Medvedja","unit":13,"stock":3,"sku":"584","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Untitleddesign_cb9ec05c-10a6-4ca5-abc9-f5aa1acdabc0.png?v=1755605898"},{"id":181,"cat":"frys","nm":"3 Medvedja Frozen Ice Cream Bubblegum & Melon 75g x 28","vd":"Medvedja","unit":13,"stock":14,"sku":"578","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Untitleddesign_48.png?v=1773829714"},{"id":182,"cat":"frys","nm":"Limo Frozen Classic Ice Cream in Waffle Cup 60g x 40","vd":"Limo","unit":13,"stock":0,"sku":"576","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LimoFrozenClassicIceCreaminWaffleCup_60g_LimoEisKlassikimWaffelbecher_60g.png?v=1754389515"},{"id":183,"cat":"frys","nm":"Aurum Frozen Ice Cream Pineapple & Tropical Fruits 70ml x 40","vd":"Nukstukas Glazed","unit":13,"stock":-1,"sku":"574","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/AurumFrozenIceCream_Pineapple_TropicalFruits_70ml_AurumEisAnanas_Tropenobstgeschmack70ml.png?v=1754389265"},{"id":184,"cat":"frys","nm":"3 Medvedja Frozen Lemon & Chocolate Ice Cream Waffle Cup 75g x 28","vd":"Medvedja","unit":13,"stock":-2,"sku":"586","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/2_8eb48cce-98f8-4bde-91e9-9c8869acdb80.png?v=1755605669"},{"id":185,"cat":"frys","nm":"3 Medvedja Ice Cream Dwa Verschka Wafer Cups 70g x 22","vd":"Medvedja","unit":13,"stock":-1,"sku":"583","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/1_b13cd2b6-45c4-41cd-90c7-2f7d270c2cfe.png?v=1755605696"},{"id":186,"cat":"frys","nm":"Etalon Frozen Ice Cream Sandwich Russian Plombir 180ml x 30","vd":"Etalon","unit":12,"stock":13,"sku":"571","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/ETALONFrozenIceCreamSandwich_RussianPlombir_180ml_ETALONSandwichEis180mlPlombirRusskij.png?v=1754388852"},{"id":187,"cat":"frys","nm":"3 Medvedja Kastan Frozen Vanilla Ice Cream Bar 70g x 34","vd":"Medvedja","unit":13,"stock":0,"sku":"579","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/3MedvedjaKastanFrozenVanillaIceCreamBar_70g_3MedvedjaKastanEisVanillePlombir_GlasuramSt._10_70g_1df9543f-c0dd-47d5-af83-15de18922308.png?v=1754389832"},{"id":188,"cat":"frys","nm":"Savushkin Frozen Glazed Curd Snack Lyubimaya Korovka 40g x 18","vd":"Medvedja","unit":10,"stock":0,"sku":"593","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/SavushkinFrozenGlazedCurdSnack_LyubimayaKorovka_40g_BYSavuschkinQuarkriegelLjubimajaKorovkainkakaoh.40g_TK.png?v=1754392311"},{"id":189,"cat":"frys","nm":"3 Medvedia Frozen Creme Brulee Ice Cream Waffle Cup 100g x 26","vd":"Medvedja","unit":13,"stock":1,"sku":"587","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/3MedvediaFrozenCremeBruleeIceCream_WaffleCup_100g_3MedvediaEis_CremeBrulee_Waffelb_12_100g.png?v=1754391654"},{"id":190,"cat":"frys","nm":"33 Korowi Quarkriegel in Glasur Kondensmilch 38g X 18","vd":"33 Korowi","unit":10,"stock":8,"sku":"5432","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/33KorowiQuarkriegelinGlasurKondensmilch38gX18.png?v=1773996406"},{"id":191,"cat":"frys","nm":"33 Korowi quark bars in glaze with banana 40g X 18","vd":"33 Korowi","unit":13,"stock":14,"sku":"5466","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/33Korowiquarkbarsinglazewithbanana40gX18.png?v=1773999330"},{"id":192,"cat":"frys","nm":"33 Korowi Quarkriegel in Glasur Erdbeere 38g X 18","vd":"33 Korowi","unit":10,"stock":10,"sku":"5431","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/33KorowiQuarkriegelinGlasurErdbeere38gX18.png?v=1773996311"},{"id":193,"cat":"frys","nm":"33 Korowi quark bars in vanilla glaze 38g X 18","vd":"33 Korowi","unit":10,"stock":8,"sku":"5430","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/33Korowiquarkbarsinvanillaglaze38gX18.png?v=1773996286"},{"id":194,"cat":"frys","nm":"BY Savuschkin Quarkriegel Plush with cocoa powder 45g X 28","vd":"Savuschkin","unit":13,"stock":-1,"sku":"5450","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/BYSavuschkinQuarkriegelPlushwithcocoapowder._glass45gX28.png?v=1773997893"},{"id":195,"cat":"frys","nm":"Lasunka ice cream Stakan Welikan Plombir condensed milk 100g X 30","vd":"Lasunka","unit":13,"stock":-1,"sku":"5487","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LasunkaicecreamStakanWelikanPlombircondensedmilk100gX30.png?v=1774000954"},{"id":196,"cat":"frys","nm":"Lasunka Ice Cream Stakan Welikan Cherry-Apricot Wafer 100g X 30","vd":"Lasunka","unit":13,"stock":-1,"sku":"5486","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LasunkaIceCreamStakanWelikanCherry-ApricotWafer100gX30.png?v=1774000861"},{"id":197,"cat":"frys","nm":"Lasunka Ice Cream Stakan Welikan Cocoa Condensation 100g X 30","vd":"Lasunka","unit":14,"stock":-3,"sku":"5485","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LasunkaIceCreamStakanWelikanCocoaCondensation100gX30.png?v=1774000837"},{"id":198,"cat":"frys","nm":"Lasunka Plombir Stakan Welikan Eis Becher 95g X 30","vd":"Lasunka","unit":13,"stock":-1,"sku":"5484","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LasunkaPlombirStakanWelikanEisBecher95gX30.png?v=1774000767"},{"id":199,"cat":"frys","nm":"Lasunka Eis Premium-Plombir Block 90g X 27","vd":"Lasunka","unit":13,"stock":-1,"sku":"5483","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/LasunkaEisPremium-PlombirBlock90gX27.png?v=1774000744"},{"id":200,"cat":"frys","nm":"Frosty Bites Ice Cream Mix Fruits 12 X 150g","vd":"Frosty Bites","unit":80,"stock":319,"sku":"6015","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/1_e87fc6ff-bcfb-4ec2-aca1-fcc0ca0e0628.png?v=1781181705"},{"id":201,"cat":"frys","nm":"Puzata Hata Frozen Pork & Beef Pelmeni 900g x 15","vd":"Puzata Hata","unit":69,"stock":20,"sku":"553","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/PuzataHataFrozenPork_BeefDumplings-900g_PuzataHataPelmenim.Schweine-undRindfleisch900gTK_9eacc358-ea0b-439a-97ce-bed574ddc970.png?v=1754386250"},{"id":10,"cat":"kjol","nm":"ABC Ost Classic 200g x 12","vd":"ABC","unit":35,"stock":8,"sku":"6417","ny":1,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/ABCOstClassic200g.png?v=1783531388"},{"id":11,"cat":"kjol","nm":"Alborz Yoghurt Drink 6 x 1,5L","vd":"Alborz","unit":41,"stock":0,"sku":"4349","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/AlborzYoghurtDrink1x6x1_5L_AlborzYoghurtDrank1x6x1_5L.png?v=1759383995"},{"id":12,"cat":"kjol","nm":"Animex Krakus Podwawelska Sausage 520g x 10","vd":"Krakus","unit":109,"stock":0,"sku":"5564","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/AnimexKrakusPodwawelskaSausage520gx10.png?v=1774361662"},{"id":13,"cat":"kjol","nm":"Animex Morliny Berlinki Classic Wieners 450g X 8","vd":"Morliny","unit":86,"stock":0,"sku":"5795","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/AnimexMorlinyBerlinkiClassicWieners450gX8.png?v=1778249219"},{"id":14,"cat":"kjol","nm":"Apetina Mediterranean Type Cheese 200g x 54","vd":"Hochland","unit":23,"stock":0,"sku":"2039","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/ARLAAPETINAMEDITERRANEANTYPECHEESE200G.png?v=1736867903"},{"id":20,"cat":"drikke","nm":"Hortex Vannmelon, Eple & Jordbær 6x1,75L","vd":"Hortex","unit":19,"stock":0,"sku":"226","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/24.png?v=1736867923"},{"id":21,"cat":"drikke","nm":"Hortex Appelsin og Fersken Drikke 6x1,75L","vd":"Hortex","unit":19,"stock":0,"sku":"225","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/28.png?v=1736867926"},{"id":22,"cat":"drikke","nm":"Hortex Eple og Fersken Drikke 6x1,75L","vd":"Hortex","unit":19,"stock":0,"sku":"224","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/8.png?v=1736867926"},{"id":23,"cat":"drikke","nm":"Hortex Appelsin og Ananas Drikke 6x1,75L","vd":"Hortex","unit":19,"stock":0,"sku":"223","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/12.png?v=1736867927"},{"id":24,"cat":"drikke","nm":"Hortex Eple, Bringebær og Lime Drikke 6x1,75L","vd":"Hortex","unit":19,"stock":0,"sku":"222","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/23.png?v=1736867927"},{"id":30,"cat":"sjok","nm":"Aksam Beskidzkie Salted Peanuts 140g X 12","vd":"Aksam","unit":26,"stock":0,"sku":"5722","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Untitleddesign_81.png?v=1776930281"},{"id":31,"cat":"sjok","nm":"Aksam Beskidzkie Sticks With Chili-Lime 180g x 16","vd":"Aksam","unit":20,"stock":0,"sku":"5712","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Untitleddesign_68.png?v=1776770160"},{"id":32,"cat":"sjok","nm":"Aksam Beskidzkie Sticks With Sesame 175g x 18","vd":"Aksam","unit":17,"stock":0,"sku":"5713","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Untitleddesign_69.png?v=1776770312"},{"id":33,"cat":"sjok","nm":"Aksam Beskidzkie Mini Bagels With Salt 200g x 14","vd":"Aksam","unit":24,"stock":0,"sku":"5714","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Untitleddesign_70.png?v=1776770502"},{"id":34,"cat":"sjok","nm":"Toffifee Chocolate 125g X 90","vd":"Toffifee","unit":26,"stock":13,"sku":"—","ny":1,"img":""},{"id":35,"cat":"sjok","nm":"Roshen Candies Jelly 1kg x 10","vd":"Roshen","unit":110,"stock":30,"sku":"—","ny":1,"img":""},{"id":40,"cat":"chips","nm":"Topis Cheese Puffs 16 x 65g","vd":"Topis","unit":13,"stock":0,"sku":"1850","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/125.png?v=1736868818"},{"id":41,"cat":"chips","nm":"Cheetos Chrupki Løk (Green Onion) 130G X 14","vd":"Cheetos","unit":22,"stock":-5,"sku":"1312","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/CHEETOS_CHRUPKI_130G_ZOLTY_SER_1794d767-7f53-4126-b93a-c9dd44c936da.png?v=1736867465"},{"id":42,"cat":"chips","nm":"Cheetos Chrupki Ost & Ketchup 130G X 14","vd":"Cheetos","unit":22,"stock":64,"sku":"24225","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/CHEETOS_CHRUPKI_130G_SPIRALE_SER_Z_KETCHUPEM_61503c59-a83c-460e-a9d9-88b9caba834d.png?v=1736867464"},{"id":43,"cat":"chips","nm":"Cheetos Chrupki Ost 130G X 14","vd":"Cheetos","unit":22,"stock":51,"sku":"1314","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/RUNOPOL_PODGRZYBKI_BRUNATNE_SUSZONE_KROJONE_20G-4_a0c81ece-c68c-47da-80db-c9c925be9fe3.png?v=1736867464"},{"id":44,"cat":"chips","nm":"Pringles Ketchup 165g X 19","vd":"Pringles","unit":25,"stock":43,"sku":"—","ny":1,"img":""},{"id":50,"cat":"energi","nm":"Red Bull Energy Drink Glass 250ML x 24","vd":"Red Bull","unit":23,"stock":46,"sku":"1451","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/RED_BULL_NAPOJ_ENERGETYCZNY_250ML_BUT_3277fccd-0694-492a-b65d-f092b0cf8e8a.png?v=1736868696"},{"id":51,"cat":"energi","nm":"Red Bull Energy Classic Drink Boks 250Ml x 24","vd":"Red Bull","unit":17,"stock":96,"sku":"1450","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/RED_BULL_NAPOJ_ENERGETYCZNY_250ML_PUSZKA_09510187-7f62-424d-bba2-ee8f8e99cafa.png?v=1736868896"},{"id":52,"cat":"energi","nm":"Coca-Cola Monster Energy Drink Doctor 500ML X 12","vd":"Coca-Cola","unit":23,"stock":103,"sku":"1319","ny":0,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/products/COCA-COLA_MONSTER_NAPOJ_ENERGETYCZNY_500ML_DOCTOR_PUSZKA_5dca7865-d450-40a4-b8cd-f20d7308dac0.png?v=1736868300"},{"id":53,"cat":"energi","nm":"Coca-Cola Monster Energy Drink Ultra Violet 500ml x 12","vd":"Coca-Cola","unit":25,"stock":7,"sku":"1324","ny":1,"img":"https://cdn.shopify.com/s/files/1/0518/0601/1584/files/Coca-ColaMonsterEnergyDrinkUltraViolet500mlx12.png?v=1780548975"}];
+
+let activeCat=CATS[0].id, cart={}, query='', refText='', kbTarget=null;
+const byId=id=>PRODUCTS.find(p=>p.id===id);
+const totalQty=()=>Object.values(cart).reduce((a,b)=>a+b,0);
+const totalKr=()=>Object.entries(cart).reduce((s,[id,q])=>s+byId(+id).price*q,0);
+const kr=n=>'kr '+n.toLocaleString('no-NO',{minimumFractionDigits:2,maximumFractionDigits:2});
+const norm=s=>s.toLowerCase().replace(/æ/g,'ae').replace(/ø/g,'o').replace(/å/g,'a');
+const matches=(p,q)=>{const n=norm(q);return norm(p.nm).includes(n)||norm(p.vd).includes(n)||p.sku.includes(q.trim());};
+/* In-stock first, "Ikke på lager" sinks to the bottom. Order within each group
+   is preserved (Shopify's own order). */
+const sortStock=list=>[...list].sort((a,b)=>(a.stock>0?0:1)-(b.stock>0?0:1));
+const visibleProducts=()=>sortStock(query.trim()?PRODUCTS.filter(p=>matches(p,query)):PRODUCTS.filter(p=>p.cat===activeCat));
+/* Stock, kept quiet: it rides on the vendor line instead of owning a row.
+   Shopify counts can be negative (oversold) — never show that to a customer. */
+function stockNote(s){
+  if(s<=0) return '';
+  if(s<=10) return ` · <span class="st low">Kun ${s} igjen</span>`;
+  return ` · <span class="st ok">${s} på lager</span>`;
+}
+
+function renderStrip(){
+  document.getElementById('rail').innerHTML=CATS.map(c=>`
+    <button class="cat ${(!query.trim()&&c.id===activeCat)?'on':''}" onclick="pickCat('${c.id}')">
+      <span class="ic">${c.ic}</span>
+      <span class="lbl">${c.name}<span class="n">${c.have<c.n?c.have+' av '+c.n:c.n+' varer'}</span></span>
+    </button>`).join('');
+}
+function renderGrid(){
+  const items=visibleProducts(), searching=!!query.trim();
+  const cat=CATS.find(c=>c.id===activeCat);
+  document.getElementById('ghEyebrow').textContent=searching?'Søkeresultat':'Sortiment';
+  document.getElementById('catTitle').textContent=searching?`«${query}»`:cat.name;
+  document.getElementById('catCount').textContent=searching
+    ? items.length+' treff'
+    : (cat.have<cat.n ? cat.have+' av '+cat.n+' varer (utvalg)' : cat.have+' varer');
+  document.getElementById('noresult').style.display=items.length?'none':'block';
+  document.getElementById('grid').innerHTML=items.map(p=>{
+    const q=cart[p.id]||0, out=p.stock<=0;
+    return `<div class="card${q?' has':''}${out?' out':''}" data-id="${p.id}" onclick="addItem(${p.id})">
+      ${p.ny&&!out?'<div class="ribbon"><span>NYHET</span></div>':''}
+      ${out?'<div class="outtag">Ikke på lager</div>':(q?`<div class="qbadge">${q}</div>`:'')}
+      <div class="thumb${p.img?'':' noimg'}">
+        ${p.img?`<img src="${p.img}" alt="${p.nm}" referrerpolicy="no-referrer" loading="lazy" onerror="this.parentNode.classList.add('noimg');this.remove()">`:''}
+        <div class="fallback">${p.vd}</div>
+      </div>
+      <div class="meta">
+        <div class="nm">${p.nm}</div>
+        <div class="sub">${p.vd}${stockNote(p.stock)}</div>
+        <div class="pricerow">
+          <div class="unit">kr ${p.unit},-<span>/stk</span></div>
+          <div class="actionslot">${q?`<div class="cstep" onclick="event.stopPropagation()">
+                 <button onclick="dec(${p.id})">−</button><span onclick="openQty(${p.id})">${q}</span><button onclick="addItem(${p.id})">+</button>
+               </div>`:`<div class="plus">+</div>`}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderSearch(){
+  const box=document.getElementById('sbox'),q=document.getElementById('sq');
+  box.classList.toggle('has',!!query);box.classList.toggle('active',kbTarget==='search');
+  if(query){q.textContent=query;q.classList.remove('ph');}
+  else{q.textContent='Søk i hele sortimentet — vare, merke eller SKU …';q.classList.add('ph');}
+}
+function renderBar(){
+  const q=totalQty();
+  document.getElementById('barCount').textContent=q+(q===1?' vare':' varer');
+  document.getElementById('seeCnt').textContent=q;
+  document.getElementById('seeBtn').disabled=q===0;
+  document.getElementById('barHint').textContent=q?kr(totalKr())+' · inkl. mva':'Trykk + på varene du vil bestille';
+}
+function renderSheet(){
+  const ids=Object.keys(cart),box=document.getElementById('lines');
+  box.innerHTML=ids.length?ids.map(id=>{
+    const p=byId(+id),q=cart[id];
+    return `<div class="line">
+      <div class="lim">${p.img?`<img src="${p.img}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`:''}</div>
+      <div class="lmeta"><b>${p.nm}</b><small>${p.vd} · ${kr(p.price)}</small></div>
+      <div class="stepper"><button onclick="dec(${p.id})">−</button><span onclick="openQty(${p.id})">${q}</span><button onclick="addItem(${p.id})">+</button></div>
+    </div>`;
+  }).join(''):`<div class="emptycart">Kurven er tom.</div>`;
+  document.getElementById('total').textContent=kr(totalKr());
+  const cb=document.getElementById('clearBtn'); if(cb) cb.disabled=!ids.length;
+  resetIdle();
+  const rb=document.getElementById('refbox'),rq=document.getElementById('refq');
+  rb.classList.toggle('active',kbTarget==='ref');
+  if(refText){rq.textContent=refText;rq.classList.remove('ph');}
+  else{rq.textContent='f.eks. Oslo Matsenter / 1042';rq.classList.add('ph');}
+}
+const ROWS=[['1','2','3','4','5','6','7','8','9','0'],['q','w','e','r','t','y','u','i','o','p','å'],['a','s','d','f','g','h','j','k','l','ø','æ'],['z','x','c','v','b','n','m','-']];
+function buildKb(){
+  let h='';ROWS.forEach(r=>{h+='<div class="kbrow">'+r.map(k=>`<button class="key" onclick="kbType('${k}')">${k.toUpperCase()}</button>`).join('')+'</div>';});
+  h+=`<div class="kbrow"><button class="key wide" onclick="kbBack()">⌫ Slett</button><button class="key space" onclick="kbType(' ')">mellomrom</button><button class="key wide gold" onclick="kbClose()">Ferdig</button></div>`;
+  document.getElementById('kb').innerHTML=h;
+}
+function kbOpen(t){kbTarget=t;document.getElementById('kb').classList.add('show');renderSearch();renderSheet();}
+function kbClose(){kbTarget=null;document.getElementById('kb').classList.remove('show');renderSearch();renderSheet();}
+function kbType(ch){if(kbTarget==='search'){query+=ch;renderSearch();renderStrip();renderGrid();}else if(kbTarget==='ref'){refText+=ch;renderSheet();}}
+function kbBack(){if(kbTarget==='search'){query=query.slice(0,-1);renderSearch();renderStrip();renderGrid();}else if(kbTarget==='ref'){refText=refText.slice(0,-1);renderSheet();}}
+function focusSearch(){kbOpen('search');}
+function focusRef(){kbOpen('ref');}
+function clearSearch(){query='';kbClose();renderSearch();renderStrip();renderGrid();}
+document.addEventListener('keydown',e=>{
+  if(document.getElementById('attract').style.display==='none'){
+    if(e.key==='Backspace'){if(kbTarget){kbBack();e.preventDefault();}}
+    else if(e.key==='Escape'){kbClose();}
+    else if(e.key.length===1){if(!kbTarget)kbOpen('search');kbType(e.key.toLowerCase());}
+  }
+});
+function pickCat(id){activeCat=id;query='';kbClose();renderSearch();renderStrip();renderGrid();document.getElementById('gridwrap').scrollTop=0;}
+
+/* Smoothness: only repaint the card that changed. Re-rendering the whole grid
+   on every tap made images re-decode and the scroll position jump. */
+function updateCard(id){
+  const p=byId(id); if(!p) return;
+  const el=document.querySelector(`.card[data-id="${id}"]`); if(!el) return;
+  const q=cart[id]||0;
+  el.classList.toggle('has',q>0);
+  const badge=el.querySelector('.qbadge');
+  if(q>0){
+    if(badge) badge.textContent=q;
+    else if(p.stock>0) el.insertAdjacentHTML('afterbegin',`<div class="qbadge">${q}</div>`);
+  } else if(badge) badge.remove();
+  const slot=el.querySelector('.actionslot');
+  if(slot) slot.innerHTML = q>0
+    ? `<div class="cstep" onclick="event.stopPropagation()"><button onclick="dec(${id})">−</button><span onclick="openQty(${id})">${q}</span><button onclick="addItem(${id})">+</button></div>`
+    : `<div class="plus">+</div>`;
+}
+function addItem(id){const p=byId(id);if(!p||p.stock<=0)return;cart[id]=(cart[id]||0)+1;updateCard(id);renderBar();renderSheet();}
+function dec(id){cart[id]--;if(cart[id]<=0)delete cart[id];updateCard(id);renderBar();renderSheet();}
+
+
+/* ===== QUANTITY PAD =====
+   Tapping + twenty times is not ordering. Tap the number on a card (or in the
+   basket) to type an exact quantity. */
+let qpId=null, qpVal='0', qpTyping=false;
+
+function openQty(id){
+  const p=byId(id); if(!p||p.stock<=0) return;
+  qpId=id; qpVal=String(cart[id]||0); qpTyping=false;
+  const img=document.getElementById('qpImg');
+  img.innerHTML = p.img ? `<img src="${p.img}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : '';
+  document.getElementById('qpName').textContent=p.nm;
+  document.getElementById('qpSub').textContent=`${p.vd} · kr ${p.unit},-/stk`;
+  renderQty();
+  document.getElementById('qtyScrim').classList.add('show');
+  document.getElementById('qtyPad').classList.add('show');
+  resetIdle();
+}
+function closeQty(){
+  document.getElementById('qtyScrim').classList.remove('show');
+  document.getElementById('qtyPad').classList.remove('show');
+  qpId=null;
+}
+function renderQty(){
+  const n=parseInt(qpVal||'0',10)||0;
+  document.getElementById('qpNum').textContent=n;
+  const p=byId(qpId);
+  document.getElementById('qpSum').innerHTML = p ? `${n} × kr ${p.unit},- = <b>${kr(n*p.unit)}</b>` : '';
+}
+function qtyType(d){
+  if(!qpTyping){ qpVal=''; qpTyping=true; }
+  if(qpVal.length>=4) return;             // 9999 cap
+  qpVal=(qpVal+d).replace(/^0+(?=\d)/,'');
+  renderQty(); resetIdle();
+}
+function qtyBack(){ qpVal=qpVal.slice(0,-1)||'0'; qpTyping=true; renderQty(); resetIdle(); }
+function qtyClearNum(){ qpVal='0'; qpTyping=true; renderQty(); resetIdle(); }
+function qtyStep(d){
+  const n=Math.max(0,(parseInt(qpVal||'0',10)||0)+d);
+  qpVal=String(n); qpTyping=false; renderQty(); resetIdle();
+}
+function qtyAdd(d){
+  const n=Math.min(9999,(parseInt(qpVal||'0',10)||0)+d);
+  qpVal=String(n); qpTyping=false; renderQty(); resetIdle();
+}
+function qtyApply(){
+  if(qpId==null) return;
+  const n=parseInt(qpVal||'0',10)||0;
+  const id=qpId;
+  if(n<=0) delete cart[id]; else cart[id]=n;
+  updateCard(id); renderBar(); renderSheet(); closeQty();
+}
+function qtyRemove(){
+  if(qpId==null) return;
+  const id=qpId; delete cart[id];
+  updateCard(id); renderBar(); renderSheet(); closeQty();
+}
+
+function clearCart(){
+  if(!totalQty())return;
+  const ids=Object.keys(cart).map(Number);
+  cart={};
+  ids.forEach(updateCard);
+  renderBar();renderSheet();closeSheet();
+}
+
+/* The kiosk resets itself — this is what "Start på nytt" used to do.
+   Without it, the next customer walks up to the last one's basket. */
+const IDLE_MS=60000;
+let idleTimer=null;
+function resetIdle(){
+  clearTimeout(idleTimer);
+  if(document.getElementById('attract').style.display==='none' && !document.getElementById('done').classList.contains('show')){
+    idleTimer=setTimeout(goAttract,IDLE_MS);
+  }
+}
+['pointerdown','keydown','touchstart'].forEach(ev=>document.addEventListener(ev,resetIdle,{passive:true}));
+function openSheet(){if(!totalQty())return;renderSheet();document.getElementById('scrim').classList.add('show');document.getElementById('sheet').classList.add('show');}
+function closeSheet(){kbClose();document.getElementById('scrim').classList.remove('show');document.getElementById('sheet').classList.remove('show');}
+function sendOrder(){
+  if(!totalQty())return;
+  document.getElementById('doneNo').textContent='NE-'+String(Math.floor(1000+Math.random()*9000));
+  closeSheet();document.getElementById('done').classList.add('show');
+  cart={};refText='';renderGrid();renderBar();
+}
+/* Fullscreen: hides the browser bars. Needs a user gesture, so we fire it on
+   the first tap. Silently ignored where unsupported (e.g. iOS Safari, which
+   needs Add to Home Screen instead). */
+function goFullscreen(){
+  const el=document.documentElement;
+  const fn=el.requestFullscreen||el.webkitRequestFullscreen||el.msRequestFullscreen;
+  if(fn && !document.fullscreenElement){ try{ fn.call(el); }catch(e){} }
+}
+function startOrder(){
+  goFullscreen();
+  document.getElementById('attract').style.display='none';
+  resetIdle();
+}
+function goAttract(){
+  clearTimeout(idleTimer);
+  document.getElementById('done').classList.remove('show');closeSheet();
+  cart={};refText='';query='';activeCat=CATS[0].id;
+  renderSearch();renderStrip();renderGrid();renderBar();
+  document.getElementById('attract').style.display='flex';
+}
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('gesturestart',e=>e.preventDefault());
+buildKb();renderStrip();renderGrid();renderBar();renderSearch();
+</script>
+</body>
+</html>
