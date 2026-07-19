@@ -174,6 +174,14 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
   .key.space{flex:4 1 0;font-size:calc(13px*var(--u));}
   .key.gold{background:var(--gold);color:var(--ink-deep);}
 
+  /* Keyboard-aware layout: when the keyboard is open, reserve exactly its
+     measured height (--kbh, set in Kiosk.tsx) so the product grid shrinks to sit
+     ABOVE the keyboard instead of being covered by it. The cart bar is hidden
+     while typing (the keyboard's own "Ferdig" button closes the keyboard). */
+  .body{transition:padding-bottom .24s cubic-bezier(.4,0,.1,1);}
+  .kiosk.kb-open .body{padding-bottom:var(--kbh,0px);}
+  .kiosk.kb-open .cartbar{display:none;}
+
   /* SHEET */
   .scrim{position:absolute;inset:0;background:rgba(34,35,44,.5);z-index:20;opacity:0;pointer-events:none;transition:.2s;}
   .scrim.show{opacity:1;pointer-events:auto;}

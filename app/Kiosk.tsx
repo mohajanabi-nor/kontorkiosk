@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { KioskProduct } from "@/lib/shopify";
 import { KioskCategory } from "@/lib/categories";
 import Lockup from "./Lockup";
@@ -46,6 +46,16 @@ export default function Kiosk({ categories, demo }: Props) {
   const gridRef = useRef<HTMLDivElement>(null);
   const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqId = useRef(0);
+  const kbRef = useRef<HTMLDivElement>(null);
+  const [kbh, setKbh] = useState(0);
+
+  // Measure the on-screen keyboard's real height whenever it opens, so the
+  // layout can reserve exactly that much space (see --kbh usage below). Without
+  // this the keyboard slides up *over* the product grid and hides the results.
+  useEffect(() => {
+    if (kbTarget && kbRef.current) setKbh(kbRef.current.offsetHeight);
+    else setKbh(0);
+  }, [kbTarget]);
 
   /* ---------- data ---------- */
   const load = useCallback(
@@ -234,7 +244,10 @@ export default function Kiosk({ categories, demo }: Props) {
   };
 
   return (
-    <div className="kiosk">
+    <div
+      className={"kiosk" + (kbTarget ? " kb-open" : "")}
+      style={{ ["--kbh"]: kbh + "px" } as CSSProperties}
+    >
       {/* HEADER — search only */}
       <div className="head">
         <div
@@ -404,7 +417,7 @@ export default function Kiosk({ categories, demo }: Props) {
       </div>
 
       {/* KEYBOARD */}
-      <div id="kb" className={kbTarget ? "show" : ""}>
+      <div id="kb" ref={kbRef} className={kbTarget ? "show" : ""}>
         {KB_ROWS.map((row, i) => (
           <div className="kbrow" key={i}>
             {row.map((k) => (

@@ -121,13 +121,39 @@ const SEARCH_QUERY = `
     }
   }`;
 
-// Search the whole catalogue, not just the open category. Sorting by
-// INVENTORY_TOTAL desc puts out-of-stock last for free (this sortKey is
-// supported on products, unlike on a collection).
+// Rank matches so the most relevant land first: a title that *starts* with the
+// query beats a title that merely contains it, which beats a vendor-only match.
+// In-stock wins ties. Lower score = higher up.
+function relevanceScore(p: KioskProduct, words: string[]): number {
+  const name = p.name.toLowerCase();
+  const vendor = p.vendor.toLowerCase();
+  const joined = words.join(" ");
+  let s = 5;
+  if (name.startsWith(joined)) s = 0;
+  else if (words.every((w) => name.split(/\s+/).some((tok) => tok.startsWith(w)))) s = 1;
+  else if (name.includes(joined)) s = 2;
+  else if (words.every((w) => name.includes(w))) s = 3;
+  else if (words.every((w) => vendor.includes(w))) s = 4;
+  return s * 2 + (p.stock > 0 ? 0 : 1); // in-stock tiebreak
+}
+
+// Search the whole catalogue, not just the open category.
+//
+// Shopify search only supports TRAILING wildcards (`milka*`) — a leading
+// wildcard (`*milka*`) is invalid syntax, and Shopify's response to an invalid
+// term is to ignore it and return everything, which then sorted by inventory is
+// why "milka" used to surface Twix / condensed milk. So: prefix-match every word
+// (AND across words), then guard the results client-side so nothing that doesn't
+// actually contain the query can slip through, and rank by relevance.
 export async function searchProducts(term: string, cursor?: string): Promise<ProductPage> {
-  const t = term.trim().replace(/["\\()]/g, "");
+  const t = term.trim().replace(/["\\()*:]/g, " ").replace(/\s+/g, " ").trim();
   if (!t) return { products: [], cursor: null, hasNext: false };
-  const q = `(title:*${t}* OR vendor:*${t}* OR sku:${t}*) AND status:active`;
+
+  const words = t.split(" ").filter(Boolean);
+  const q =
+    words.map((w) => `(title:${w}* OR vendor:${w}* OR sku:${w}*)`).join(" AND ") +
+    " AND status:active";
+
   const data = await adminGraphql<{
     products: {
       edges: { node: Node }[];
@@ -135,10 +161,20 @@ export async function searchProducts(term: string, cursor?: string): Promise<Pro
     };
   }>(SEARCH_QUERY, { q, cursor: cursor || null });
 
+  const lower = words.map((w) => w.toLowerCase());
+  const products = data.products.edges
+    .map((e) => toProduct(e.node))
+    .filter((p): p is KioskProduct => p !== null)
+    // Defensive guard: every query word must genuinely appear in a searchable
+    // field. Belt-and-suspenders in case Shopify's matching is looser than us.
+    .filter((p) => {
+      const hay = `${p.name} ${p.vendor} ${p.sku}`.toLowerCase();
+      return lower.every((w) => hay.includes(w));
+    })
+    .sort((a, b) => relevanceScore(a, lower) - relevanceScore(b, lower));
+
   return {
-    products: data.products.edges
-      .map((e) => toProduct(e.node))
-      .filter((p): p is KioskProduct => p !== null),
+    products,
     cursor: data.products.pageInfo.endCursor,
     hasNext: data.products.pageInfo.hasNextPage,
   };
