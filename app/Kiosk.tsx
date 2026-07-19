@@ -585,7 +585,6 @@ export default function Kiosk({ categories, demo }: Props) {
             Søk eller bla i kategoriene, legg i kurven og send bestillingen.
           </div>
           <div className="tap-pill">👆 Trykk for å starte</div>
-          <div className="foot">Persveien 20 · Oslo</div>
         </div>
       )}
 
