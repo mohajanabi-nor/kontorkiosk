@@ -2,7 +2,7 @@
 // standalone app (no browser chrome) and to survive a brief network blip.
 // Product data is always fetched live; we never serve stale prices or stock.
 
-const SHELL = "ne-kiosk-shell-v1";
+const SHELL = "ne-kiosk-shell-v2";
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
