@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { KioskProduct } from "@/lib/shopify";
+import { KioskProduct, KioskCustomer } from "@/lib/shopify";
 import { KioskCategory } from "@/lib/categories";
 import Lockup from "./Lockup";
 
@@ -38,6 +38,9 @@ export default function Kiosk({ categories, demo }: Props) {
   const [cart, setCart] = useState<Record<string, { p: KioskProduct; q: number }>>({});
   const [sheet, setSheet] = useState(false);
   const [ref, setRef] = useState("");
+  const [customer, setCustomer] = useState<KioskCustomer | null>(null);
+  const [custResults, setCustResults] = useState<KioskCustomer[]>([]);
+  const [custLoading, setCustLoading] = useState(false);
   const [kbTarget, setKbTarget] = useState<null | "search" | "ref">(null);
   const [qp, setQp] = useState<{ p: KioskProduct; val: string; typing: boolean } | null>(null);
   const [sending, setSending] = useState(false);
@@ -56,6 +59,43 @@ export default function Kiosk({ categories, demo }: Props) {
     if (kbTarget && kbRef.current) setKbh(kbRef.current.offsetHeight);
     else setKbh(0);
   }, [kbTarget]);
+
+  // Live customer typeahead in the order sheet. Debounced so we don't hit
+  // Shopify on every keystroke, and skipped once a customer is locked in.
+  useEffect(() => {
+    if (customer) return;
+    const term = ref.trim();
+    if (term.length < 2) {
+      setCustResults([]);
+      setCustLoading(false);
+      return;
+    }
+    setCustLoading(true);
+    const t = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/customers?q=${encodeURIComponent(term)}`);
+        const d = await r.json();
+        setCustResults(d.customers || []);
+      } catch {
+        setCustResults([]);
+      }
+      setCustLoading(false);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [ref, customer]);
+
+  const pickCustomer = (c: KioskCustomer) => {
+    setCustomer(c);
+    setRef(c.label);
+    setCustResults([]);
+    setKbTarget(null);
+  };
+
+  const clearCustomer = () => {
+    setCustomer(null);
+    setRef("");
+    setCustResults([]);
+  };
 
   /* ---------- data ---------- */
   const load = useCallback(
@@ -167,6 +207,8 @@ export default function Kiosk({ categories, demo }: Props) {
     if (idleRef.current) clearTimeout(idleRef.current);
     setCart({});
     setRef("");
+    setCustomer(null);
+    setCustResults([]);
     setQuery("");
     setSheet(false);
     setKbTarget(null);
@@ -195,7 +237,7 @@ export default function Kiosk({ categories, demo }: Props) {
       const r = await fetch("/api/order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lines, reference: ref }),
+        body: JSON.stringify({ lines, reference: ref, customerId: customer?.id }),
       });
       const d = await r.json();
       setOrderNo(d.ok ? d.name : "NE-" + Math.floor(1000 + Math.random() * 9000));
@@ -206,6 +248,8 @@ export default function Kiosk({ categories, demo }: Props) {
     setScreen("done");
     setCart({});
     setRef("");
+    setCustomer(null);
+    setCustResults([]);
     setSending(false);
   };
 
@@ -454,6 +498,7 @@ export default function Kiosk({ categories, demo }: Props) {
           </button>
           <button className="x" onClick={() => setSheet(false)}>×</button>
         </h3>
+        <div className="sheet-body">
         <div className="lines">
           {totalQty === 0 ? (
             <div className="emptycart">Kurven er tom.</div>
@@ -486,14 +531,50 @@ export default function Kiosk({ categories, demo }: Props) {
           )}
         </div>
         <div className="nameblock">
-          <label>Navn eller kundenr. (så vi vet hvem som henter)</label>
-          <div
-            className={"fakeinput" + (kbTarget === "ref" ? " active" : "")}
-            onClick={() => setKbTarget("ref")}
-          >
-            <span className={ref ? "" : "ph"}>{ref || "f.eks. Oslo Matsenter / 1042"}</span>
-            <span className="caret" />
-          </div>
+          <label>Kunde — søk navn, firma, e-post eller telefon</label>
+          {customer ? (
+            <div className="cust-chip">
+              <div>
+                <b>{customer.label}</b>
+                {customer.sublabel && <small>{customer.sublabel}</small>}
+              </div>
+              <span className="cust-orders">{customer.orders} ordre</span>
+              <button className="cust-change" onClick={clearCustomer}>
+                Endre
+              </button>
+            </div>
+          ) : (
+            <>
+              <div
+                className={"fakeinput" + (kbTarget === "ref" ? " active" : "")}
+                onClick={() => setKbTarget("ref")}
+              >
+                <span className={ref ? "" : "ph"}>{ref || "Søk kunde …"}</span>
+                <span className="caret" />
+              </div>
+              {ref.trim().length >= 2 && (
+                <div className="cust-results">
+                  {custLoading && <div className="cust-hint">Søker …</div>}
+                  {!custLoading && custResults.length === 0 && (
+                    <div className="cust-hint">Ingen kunde funnet</div>
+                  )}
+                  {custResults.map((c) => (
+                    <button className="cust-row" key={c.id} onClick={() => pickCustomer(c)}>
+                      <div>
+                        <b>{c.label}</b>
+                        {c.sublabel && <small>{c.sublabel}</small>}
+                      </div>
+                      <span className="cust-orders">{c.orders} ordre</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="cust-new">
+                Ny kunde? Skriv navnet — personalet oppretter kunden i kassa.
+              </div>
+            </>
+          )}
+        </div>
         </div>
         <div className="sheet-foot">
           <div className="totalrow">

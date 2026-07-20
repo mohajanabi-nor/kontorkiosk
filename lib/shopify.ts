@@ -185,6 +185,81 @@ export async function searchProducts(term: string, cursor?: string): Promise<Pro
 
 // ---------------------------------------------------------------------------
 
+export interface KioskCustomer {
+  id: string;        // customer GID — set as the draft order's customerId
+  label: string;     // headline: company if we have one, else the person's name
+  sublabel: string;  // secondary line (person/email/phone) to disambiguate
+  company: string;
+  name: string;
+  email: string;
+  phone: string;
+  orders: number;    // numberOfOrders, for ranking regulars first
+}
+
+const CUSTOMER_QUERY = `
+  query CustSearch($q: String!) {
+    customers(first: 12, query: $q) {
+      edges { node {
+        id displayName email phone numberOfOrders
+        defaultAddress { company }
+      } }
+    }
+  }`;
+
+// Typeahead for the order sheet. Same trailing-wildcard rule as product search
+// (Shopify rejects leading wildcards): prefix-match every word across
+// first_name/last_name/email/phone, AND-ed together. Returns [] in demo mode or
+// for <2 chars so we never fire a pointless query.
+export async function searchCustomers(term: string): Promise<KioskCustomer[]> {
+  if (!hasShopifyCreds()) return [];
+  const t = term.trim().replace(/["\\()*:]/g, " ").replace(/\s+/g, " ").trim();
+  if (t.length < 2) return [];
+
+  const words = t.split(" ").filter(Boolean);
+  const q = words
+    .map((w) => `(first_name:${w}* OR last_name:${w}* OR email:${w}* OR phone:${w}*)`)
+    .join(" AND ");
+
+  const data = await adminGraphql<{
+    customers: {
+      edges: {
+        node: {
+          id: string;
+          displayName: string | null;
+          email: string | null;
+          phone: string | null;
+          numberOfOrders: string | null;
+          defaultAddress: { company: string | null } | null;
+        };
+      }[];
+    };
+  }>(CUSTOMER_QUERY, { q });
+
+  return data.customers.edges
+    .map((e) => {
+      const n = e.node;
+      const company = n.defaultAddress?.company?.trim() || "";
+      const name = (n.displayName || "").trim();
+      const email = n.email || "";
+      const phone = n.phone || "";
+      const orders = parseInt(n.numberOfOrders || "0", 10) || 0;
+      return {
+        id: n.id,
+        label: company || name || email || "Kunde",
+        sublabel: company ? name : email || phone,
+        company,
+        name,
+        email,
+        phone,
+        orders,
+      };
+    })
+    // B2B customers (those with a company) first, then the most frequent buyers.
+    .sort((a, b) => (b.company ? 1 : 0) - (a.company ? 1 : 0) || b.orders - a.orders);
+}
+
+// ---------------------------------------------------------------------------
+
 export interface OrderLine { variantId: string; quantity: number }
 
 const DRAFT_MUTATION = `
@@ -197,7 +272,8 @@ const DRAFT_MUTATION = `
 
 export async function createDraftOrder(
   lines: OrderLine[],
-  reference: string
+  reference: string,
+  customerId?: string
 ): Promise<{ ok: boolean; name: string; error?: string }> {
   if (!hasShopifyCreds()) {
     // Demo mode — no token configured. Simulate so the kiosk stays testable.
@@ -214,6 +290,7 @@ export async function createDraftOrder(
       lineItems: lines.map((l) => ({ variantId: l.variantId, quantity: l.quantity })),
       tags: [tag],
       note: reference ? `Kiosk-bestilling – ${reference}` : "Kiosk-bestilling",
+      ...(customerId ? { customerId } : {}),
     },
   });
   const r = data.draftOrderCreate;
