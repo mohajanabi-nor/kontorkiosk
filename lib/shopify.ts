@@ -217,7 +217,10 @@ export async function searchCustomers(term: string): Promise<KioskCustomer[]> {
 
   const words = t.split(" ").filter(Boolean);
   const q = words
-    .map((w) => `(first_name:${w}* OR last_name:${w}* OR email:${w}* OR phone:${w}*)`)
+    .map(
+      (w) =>
+        `(first_name:${w}* OR last_name:${w}* OR email:${w}* OR phone:${w}* OR company:${w}*)`
+    )
     .join(" AND ");
 
   const data = await adminGraphql<{
