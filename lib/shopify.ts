@@ -40,6 +40,7 @@ interface Node {
   title: string;
   vendor: string;
   productType: string;
+  status: string;
   totalInventory: number;
   createdAt: string;
   featuredImage: { url: string } | null;
@@ -47,7 +48,7 @@ interface Node {
 }
 
 const FIELDS = `
-  id title vendor productType totalInventory createdAt
+  id title vendor productType status totalInventory createdAt
   featuredImage { url }
   variants(first: 1) { edges { node { id sku price } } }
 `;
@@ -57,6 +58,8 @@ const NEW_DAYS = 45;
 function toProduct(n: Node): KioskProduct | null {
   const v = n.variants.edges[0]?.node;
   if (!v) return null;
+  // Never show draft / archived products on the kiosk — only live ones.
+  if (n.status !== "ACTIVE") return null;
   const casePrice = parseFloat(v.price) || 0;
   // productType holds the per-unit price in this store. If it isn't a number,
   // fall back to the case price rather than showing a bogus 0.

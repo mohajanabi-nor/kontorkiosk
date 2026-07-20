@@ -237,6 +237,15 @@ export default function Kiosk({ categories, demo }: Props) {
   const activeCat = categories.find((c) => c.handle === cat);
   const searching = Boolean(query.trim());
 
+  // Out-of-stock always at the bottom of the display. Shopify can't sort a
+  // collection by inventory, so pages come back sorted only within themselves —
+  // this stable partition keeps every available item above every sold-out one
+  // across all loaded pages, preserving each group's server order.
+  const shown = useMemo(
+    () => [...items.filter((p) => p.stock > 0), ...items.filter((p) => p.stock <= 0)],
+    [items]
+  );
+
   const stockNote = (s: number) => {
     if (s <= 0) return null;
     if (s <= 10) return <> · <span className="st low">Kun {s} igjen</span></>;
@@ -332,7 +341,7 @@ export default function Kiosk({ categories, demo }: Props) {
             </div>
           ) : (
             <div className="grid">
-              {items.map((p) => {
+              {shown.map((p) => {
                 const q = cart[p.id]?.q || 0;
                 const out = p.stock <= 0;
                 return (
