@@ -236,7 +236,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
   .sheet-body{flex:1;min-height:0;display:flex;flex-direction:column;}
   @media (orientation:landscape) and (min-width:900px){
     .sheet-body{flex-direction:row;align-items:stretch;gap:calc(8px*var(--u));}
-    .sheet-body .lines{flex:0 0 55%;min-width:0;}
+    .sheet-body .lines{flex:0 0 55%;min-width:0;border-right:1px solid var(--line);}
     .sheet-body .nameblock{flex:0 0 45%;min-width:0;overflow-y:auto;padding-top:calc(6px*var(--u));}
   }
 
@@ -267,7 +267,11 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
     border-radius:calc(9px*var(--u));cursor:pointer;}
   .cust-change:active{background:rgba(244,237,224,.12);}
   .cust-hint{font-size:calc(12.5px*var(--u));color:var(--muted);padding:calc(10px*var(--u)) calc(4px*var(--u));}
-  .cust-new{font-size:calc(11.5px*var(--u));color:var(--muted);margin-top:calc(8px*var(--u));line-height:1.4;}
+  .cust-new{display:block;width:100%;text-align:left;background:none;border:1px dashed var(--gold);
+    border-radius:calc(12px*var(--u));color:var(--gold-deep);font-family:inherit;font-weight:600;
+    font-size:calc(13.5px*var(--u));padding:calc(12px*var(--u)) calc(14px*var(--u));
+    margin-top:calc(8px*var(--u));line-height:1.4;cursor:pointer;}
+  .cust-new:active{background:var(--cream-soft);}
 
   /* DONE */
   #done{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;

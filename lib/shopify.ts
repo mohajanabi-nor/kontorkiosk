@@ -201,7 +201,7 @@ const CUSTOMER_QUERY = `
     customers(first: 12, query: $q) {
       edges { node {
         id displayName email phone numberOfOrders
-        defaultAddress { company }
+        defaultAddress { company address1 city }
       } }
     }
   }`;
@@ -232,7 +232,11 @@ export async function searchCustomers(term: string): Promise<KioskCustomer[]> {
           email: string | null;
           phone: string | null;
           numberOfOrders: string | null;
-          defaultAddress: { company: string | null } | null;
+          defaultAddress: {
+            company: string | null;
+            address1: string | null;
+            city: string | null;
+          } | null;
         };
       }[];
     };
@@ -246,10 +250,16 @@ export async function searchCustomers(term: string): Promise<KioskCustomer[]> {
       const email = n.email || "";
       const phone = n.phone || "";
       const orders = parseInt(n.numberOfOrders || "0", 10) || 0;
+      // Prefer the address for the secondary line — it disambiguates two stores
+      // with similar names better than an email/phone does.
+      const addr = [n.defaultAddress?.address1, n.defaultAddress?.city]
+        .map((s) => s?.trim())
+        .filter(Boolean)
+        .join(", ");
       return {
         id: n.id,
         label: company || name || email || "Kunde",
-        sublabel: company ? name : email || phone,
+        sublabel: addr || (company ? name : "") || email || phone,
         company,
         name,
         email,

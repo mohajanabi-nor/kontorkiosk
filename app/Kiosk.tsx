@@ -569,9 +569,11 @@ export default function Kiosk({ categories, demo }: Props) {
                   ))}
                 </div>
               )}
-              <div className="cust-new">
-                Ny kunde? Skriv navnet — personalet oppretter kunden i kassa.
-              </div>
+              {ref.trim().length >= 2 && (
+                <button className="cust-new" onClick={() => setKbTarget(null)}>
+                  Fortsett med «{ref.trim()}» — ny kunde (opprettes i kassa)
+                </button>
+              )}
             </>
           )}
         </div>
