@@ -15,7 +15,10 @@ const KB_ROWS = [
   ["z", "x", "c", "v", "b", "n", "m", "-"],
 ];
 
-const IDLE_MS = 60000;
+// How long the kiosk waits with no interaction before it clears the cart and
+// returns to the attract screen. Kept long so an in-progress order isn't wiped
+// while staff and customer are still talking it through.
+const IDLE_MS = 600000; // 10 minutes
 
 type Screen = "attract" | "menu" | "done";
 
@@ -179,7 +182,6 @@ export default function Kiosk({ categories, demo }: Props) {
   );
 
   const add = (p: KioskProduct) => {
-    if (p.stock <= 0) return;
     setCart((c) => ({ ...c, [p.id]: { p, q: (c[p.id]?.q || 0) + 1 } }));
   };
   const dec = (p: KioskProduct) =>
@@ -281,15 +283,14 @@ export default function Kiosk({ categories, demo }: Props) {
   const activeCat = categories.find((c) => c.handle === cat);
   const searching = Boolean(query.trim());
 
-  // Out-of-stock always at the bottom of the display. Shopify can't sort a
-  // collection by inventory, so pages come back sorted only within themselves —
-  // this stable partition keeps every available item above every sold-out one
-  // across all loaded pages, preserving each group's server order.
-  const shown = useMemo(
-    () => [...items.filter((p) => p.stock > 0), ...items.filter((p) => p.stock <= 0)],
-    [items]
-  );
+  // This store doesn't maintain live inventory counts (most products report 0),
+  // and the kiosk only takes orders — staff pack and confirm them at the counter,
+  // so a zero count must never hide or block a product. Show everything in the
+  // collection's curated server order.
+  const shown = items;
 
+  // Only ever a positive, reassuring signal ("5 på lager"). A missing or zero
+  // count means "not tracked" here, not "sold out", so we simply say nothing.
   const stockNote = (s: number) => {
     if (s <= 0) return null;
     if (s <= 10) return <> · <span className="st low">Kun {s} igjen</span></>;
@@ -387,23 +388,18 @@ export default function Kiosk({ categories, demo }: Props) {
             <div className="grid">
               {shown.map((p) => {
                 const q = cart[p.id]?.q || 0;
-                const out = p.stock <= 0;
                 return (
                   <div
                     key={p.id}
-                    className={"card" + (q ? " has" : "") + (out ? " out" : "")}
+                    className={"card" + (q ? " has" : "")}
                     onClick={() => add(p)}
                   >
-                    {p.ny && !out && (
+                    {p.ny && (
                       <div className="ribbon">
                         <span>NYHET</span>
                       </div>
                     )}
-                    {out ? (
-                      <div className="outtag">Ikke på lager</div>
-                    ) : q > 0 ? (
-                      <div className="qbadge">{q}</div>
-                    ) : null}
+                    {q > 0 ? <div className="qbadge">{q}</div> : null}
                     <div className={"thumb" + (p.image ? "" : " noimg")}>
                       {p.image && (
                         <img

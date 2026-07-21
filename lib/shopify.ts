@@ -78,12 +78,6 @@ function toProduct(n: Node): KioskProduct | null {
   };
 }
 
-// In-stock first. Shopify can't sort a collection by inventory, so we sort each
-// loaded page — an out-of-stock item from page 1 can still sit above an in-stock
-// one from page 2. Acceptable; the stock badge always tells the truth.
-const inStockFirst = (a: KioskProduct, b: KioskProduct) =>
-  (a.stock > 0 ? 0 : 1) - (b.stock > 0 ? 0 : 1);
-
 const COLLECTION_QUERY = `
   query Cat($id: ID!, $cursor: String) {
     collection(id: $id) {
@@ -105,10 +99,11 @@ export async function getCollectionProducts(id: string, cursor?: string): Promis
   }>(COLLECTION_QUERY, { id, cursor: cursor || null });
 
   if (!data.collection) return { products: [], cursor: null, hasNext: false };
+  // Keep the collection's own curated order — inventory counts aren't
+  // maintained in this store, so we never reorder or hide by stock.
   const products = data.collection.products.edges
     .map((e) => toProduct(e.node))
-    .filter((p): p is KioskProduct => p !== null)
-    .sort(inStockFirst);
+    .filter((p): p is KioskProduct => p !== null);
   return {
     products,
     cursor: data.collection.products.pageInfo.endCursor,
@@ -118,7 +113,7 @@ export async function getCollectionProducts(id: string, cursor?: string): Promis
 
 const SEARCH_QUERY = `
   query Search($q: String!, $cursor: String) {
-    products(first: 50, query: $q, after: $cursor, sortKey: INVENTORY_TOTAL, reverse: true) {
+    products(first: 50, query: $q, after: $cursor, sortKey: RELEVANCE) {
       edges { node { ${FIELDS} } }
       pageInfo { hasNextPage endCursor }
     }
@@ -126,7 +121,7 @@ const SEARCH_QUERY = `
 
 // Rank matches so the most relevant land first: a title that *starts* with the
 // query beats a title that merely contains it, which beats a vendor-only match.
-// In-stock wins ties. Lower score = higher up.
+// Lower score = higher up.
 function relevanceScore(p: KioskProduct, words: string[]): number {
   const name = p.name.toLowerCase();
   const vendor = p.vendor.toLowerCase();
@@ -137,7 +132,7 @@ function relevanceScore(p: KioskProduct, words: string[]): number {
   else if (name.includes(joined)) s = 2;
   else if (words.every((w) => name.includes(w))) s = 3;
   else if (words.every((w) => vendor.includes(w))) s = 4;
-  return s * 2 + (p.stock > 0 ? 0 : 1); // in-stock tiebreak
+  return s;
 }
 
 // Search the whole catalogue, not just the open category.
