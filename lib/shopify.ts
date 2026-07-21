@@ -78,37 +78,52 @@ function toProduct(n: Node): KioskProduct | null {
   };
 }
 
+const COLLECTION_PAGE = 100; // raw products pulled per Shopify call
+const COLLECTION_TARGET = 48; // active products to gather before returning a page
+
 const COLLECTION_QUERY = `
   query Cat($id: ID!, $cursor: String) {
     collection(id: $id) {
-      products(first: 50, after: $cursor) {
+      products(first: ${COLLECTION_PAGE}, after: $cursor) {
         edges { node { ${FIELDS} } }
         pageInfo { hasNextPage endCursor }
       }
     }
   }`;
 
+// A collection can hold long runs of draft/archived products — this store keeps
+// ~44 drafts right at the front of Juice & Drikkevarer. We only ever show ACTIVE
+// products, so one raw page could filter down to a handful, leaving the grid too
+// short to scroll; infinite-scroll then never fires and the category looks empty.
+// So keep pulling pages until we've gathered a screenful of active products (or
+// run out). Curated order is preserved; the returned cursor continues paging.
 export async function getCollectionProducts(id: string, cursor?: string): Promise<ProductPage> {
-  const data = await adminGraphql<{
-    collection: {
-      products: {
-        edges: { node: Node }[];
-        pageInfo: { hasNextPage: boolean; endCursor: string | null };
-      };
-    } | null;
-  }>(COLLECTION_QUERY, { id, cursor: cursor || null });
+  const products: KioskProduct[] = [];
+  let after: string | null = cursor || null;
+  let hasNext = false;
 
-  if (!data.collection) return { products: [], cursor: null, hasNext: false };
-  // Keep the collection's own curated order — inventory counts aren't
-  // maintained in this store, so we never reorder or hide by stock.
-  const products = data.collection.products.edges
-    .map((e) => toProduct(e.node))
-    .filter((p): p is KioskProduct => p !== null);
-  return {
-    products,
-    cursor: data.collection.products.pageInfo.endCursor,
-    hasNext: data.collection.products.pageInfo.hasNextPage,
-  };
+  for (let page = 0; page < 8; page++) {
+    const data: {
+      collection: {
+        products: {
+          edges: { node: Node }[];
+          pageInfo: { hasNextPage: boolean; endCursor: string | null };
+        };
+      } | null;
+    } = await adminGraphql(COLLECTION_QUERY, { id, cursor: after });
+
+    if (!data.collection) break;
+    const conn = data.collection.products;
+    for (const e of conn.edges) {
+      const p = toProduct(e.node);
+      if (p) products.push(p);
+    }
+    after = conn.pageInfo.endCursor;
+    hasNext = conn.pageInfo.hasNextPage;
+    if (!hasNext || products.length >= COLLECTION_TARGET) break;
+  }
+
+  return { products, cursor: after, hasNext };
 }
 
 const SEARCH_QUERY = `

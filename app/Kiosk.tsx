@@ -155,6 +155,18 @@ export default function Kiosk({ categories, demo }: Props) {
     }
   };
 
+  // Safety net: if a freshly loaded page doesn't fill the viewport there's
+  // nothing to scroll, so onScroll can never fire and the rest of the category
+  // would never load. Keep appending until the grid overflows or we run out.
+  useEffect(() => {
+    if (loading || loadingMore || !hasNext) return;
+    const el = gridRef.current;
+    if (el && el.scrollHeight <= el.clientHeight + 40) {
+      load({ cat, q: query, cursor, append: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, hasNext, loading, loadingMore]);
+
   /* ---------- idle ---------- */
   const resetIdle = useCallback(() => {
     if (idleRef.current) clearTimeout(idleRef.current);
