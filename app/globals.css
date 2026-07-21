@@ -185,6 +185,36 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
      customer field + results stay visible instead of hidden behind the keys. */
   .kiosk.kb-open .sheet.show{bottom:var(--kbh,0px);max-height:calc(88% - var(--kbh,0px));}
 
+  /* Landscape ("laying") panel: the viewport is short and the on-screen keyboard
+     eats most of it, so a bottom sheet is far too cramped — the customer field
+     and results end up behind the keys. Let the sheet fill nearly the whole
+     height at rest, and while typing span from the top down to just above the
+     keyboard so nothing is ever overlapped. */
+  @media (orientation:landscape){
+    .sheet{max-height:95%;}
+    .kiosk.kb-open .sheet.show{
+      top:calc(env(safe-area-inset-top) + 6px);
+      bottom:var(--kbh,0px);
+      max-height:none;
+      border-radius:0;
+    }
+    /* The keyboard defaults to touch-sized keys scaled by --u, which eats ~57%
+       of the short landscape height. Use compact fixed sizes so it stays ~35%
+       and leaves room for the sheet above it. */
+    #kb{padding:8px 8px 10px;}
+    .key{height:40px;font-size:16px;border-radius:8px;}
+    .key.wide,.key.space{font-size:12px;}
+    .kbrow{gap:5px;margin-bottom:5px;}
+    /* Slim the footer so the basket + customer field aren't squeezed out. */
+    .sheet-foot{padding:calc(9px*var(--u)) calc(18px*var(--u)) calc(11px*var(--u));}
+    .totalrow{margin-bottom:calc(6px*var(--u));}
+    .sendbtn{padding:calc(13px*var(--u));font-size:calc(17px*var(--u));}
+    /* While typing a customer search, hide the total/Send footer so the result
+       list has room. You can't send until a customer is picked, and picking one
+       closes the keyboard — which brings the footer straight back. */
+    .kiosk.kb-open .sheet-foot{display:none;}
+  }
+
   /* SHEET */
   .scrim{position:absolute;inset:0;background:rgba(34,35,44,.5);z-index:20;opacity:0;pointer-events:none;transition:.2s;}
   .scrim.show{opacity:1;pointer-events:auto;}
