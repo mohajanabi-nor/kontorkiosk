@@ -181,9 +181,12 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
   .body{transition:padding-bottom .24s cubic-bezier(.4,0,.1,1);}
   .kiosk.kb-open .body{padding-bottom:var(--kbh,0px);}
   .kiosk.kb-open .cartbar{display:none;}
-  /* Keyboard over the order sheet: lift the sheet above it and shrink it so the
-     customer field + results stay visible instead of hidden behind the keys. */
-  .kiosk.kb-open .sheet.show{bottom:var(--kbh,0px);max-height:calc(88% - var(--kbh,0px));}
+  /* Keyboard over the order sheet (portrait): lift the sheet above it and shrink
+     it so the customer field + results stay visible instead of behind the keys.
+     Landscape has its own rule below that spans the sheet to the top. */
+  @media (orientation:portrait){
+    .kiosk.kb-open .sheet.show{bottom:var(--kbh,0px);max-height:calc(88% - var(--kbh,0px));}
+  }
 
   /* Landscape ("laying") panel: the viewport is short and the on-screen keyboard
      eats most of it, so a bottom sheet is far too cramped — the customer field
@@ -193,7 +196,7 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
   @media (orientation:landscape){
     .sheet{max-height:95%;}
     .kiosk.kb-open .sheet.show{
-      top:calc(env(safe-area-inset-top) + 6px);
+      top:0;
       bottom:var(--kbh,0px);
       max-height:none;
       border-radius:0;
@@ -205,14 +208,14 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
     .key{height:40px;font-size:16px;border-radius:8px;}
     .key.wide,.key.space{font-size:12px;}
     .kbrow{gap:5px;margin-bottom:5px;}
-    /* Slim the footer so the basket + customer field aren't squeezed out. */
-    .sheet-foot{padding:calc(9px*var(--u)) calc(18px*var(--u)) calc(11px*var(--u));}
+    /* Slim the panes' total/action blocks so the lists aren't squeezed out. */
+    .order-total,.action-foot{padding:calc(9px*var(--u)) calc(18px*var(--u)) calc(11px*var(--u));}
     .totalrow{margin-bottom:calc(6px*var(--u));}
     .sendbtn{padding:calc(13px*var(--u));font-size:calc(17px*var(--u));}
-    /* While typing a customer search, hide the total/Send footer so the result
-       list has room. You can't send until a customer is picked, and picking one
-       closes the keyboard — which brings the footer straight back. */
-    .kiosk.kb-open .sheet-foot{display:none;}
+    /* While typing a customer search, hide the action block (total + Send) so the
+       result list has room. You can't send until a customer is picked, and
+       picking one closes the keyboard — which brings it straight back. */
+    .kiosk.kb-open .action-foot{display:none;}
   }
 
   /* SHEET */
@@ -254,20 +257,30 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
   .fakeinput .ph{color:var(--muted);}
   .fakeinput .caret{width:2px;height:calc(20px*var(--u));background:var(--gold);animation:blink 1s step-end infinite;display:none;}
   .fakeinput.active .caret{display:block;}
-  .sheet-foot{padding:calc(14px*var(--u)) calc(20px*var(--u)) calc(20px*var(--u));border-top:1px solid var(--line);background:#fff;}
+  .order-total{flex:0 0 auto;padding:calc(10px*var(--u)) calc(20px*var(--u)) calc(14px*var(--u));
+    border-top:1px solid var(--line);background:#fff;}
+  .action-foot{flex:0 0 auto;padding:calc(14px*var(--u)) calc(20px*var(--u)) calc(18px*var(--u));
+    border-top:1px solid var(--line);background:#fff;}
   .totalrow{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:calc(12px*var(--u));}
+  .totalrow.sub{margin-bottom:calc(5px*var(--u));}
   .totalrow span{font-size:calc(14.5px*var(--u));color:var(--muted);font-weight:500;}
-  .totalrow b{font-size:calc(26px*var(--u));font-weight:800;color:var(--ink);}
+  .totalrow b{font-size:calc(24px*var(--u));font-weight:800;color:var(--ink);}
   .sendbtn{width:100%;background:var(--gold);border:none;color:#fff;font-family:inherit;font-weight:700;font-size:calc(20px*var(--u));
     padding:calc(20px*var(--u));border-radius:calc(15px*var(--u));cursor:pointer;box-shadow:0 12px 28px rgba(239,166,58,.36);}
   .emptycart{text-align:center;color:var(--muted);padding:calc(40px*var(--u)) calc(20px*var(--u));font-size:calc(15px*var(--u));}
 
-  /* Sheet body: basket over customer on portrait; side-by-side on landscape. */
-  .sheet-body{flex:1;min-height:0;display:flex;flex-direction:column;}
+  /* Two-pane order sheet (checkout style): order summary | customer + send.
+     Stacked on portrait, side-by-side on landscape. Each pane is a column with a
+     scrolling top part and a pinned total/action at its bottom. */
+  .sheet-split{flex:1;min-height:0;display:flex;flex-direction:column;}
+  .pane{display:flex;flex-direction:column;min-height:0;min-width:0;}
+  .pane-order{flex:1;}
+  .pane-action{flex:0 0 auto;}
   @media (orientation:landscape) and (min-width:900px){
-    .sheet-body{flex-direction:row;align-items:stretch;gap:calc(8px*var(--u));}
-    .sheet-body .lines{flex:0 0 55%;min-width:0;border-right:1px solid var(--line);}
-    .sheet-body .nameblock{flex:0 0 45%;min-width:0;overflow-y:auto;padding-top:calc(6px*var(--u));}
+    .sheet-split{flex-direction:row;align-items:stretch;}
+    .pane-order{flex:0 0 55%;border-right:1px solid var(--line);}
+    .pane-action{flex:0 0 45%;}
+    .pane-action .nameblock{flex:1;min-height:0;overflow-y:auto;}
   }
 
   /* Customer typeahead */

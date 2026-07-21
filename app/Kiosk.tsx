@@ -498,98 +498,115 @@ export default function Kiosk({ categories, demo }: Props) {
           </button>
           <button className="x" onClick={() => setSheet(false)}>×</button>
         </h3>
-        <div className="sheet-body">
-        <div className="lines">
-          {totalQty === 0 ? (
-            <div className="emptycart">Kurven er tom.</div>
-          ) : (
-            Object.values(cart).map(({ p, q }) => (
-              <div className="line" key={p.id}>
-                <div className="lim">
-                  {p.image && (
-                    <img
-                      src={p.image}
-                      alt=""
-                      referrerPolicy="no-referrer"
-                      onError={(e) => e.currentTarget.remove()}
-                    />
-                  )}
-                </div>
-                <div className="lmeta">
-                  <b>{p.name}</b>
-                  <small>
-                    {p.vendor} · {kr(p.casePrice)}/kolli
-                  </small>
-                </div>
-                <div className="stepper">
-                  <button onClick={() => dec(p)}>−</button>
-                  <span onClick={() => setQp({ p, val: String(q), typing: false })}>{q}</span>
-                  <button onClick={() => add(p)}>+</button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        <div className="nameblock">
-          <label>Kunde — søk og velg registrert kunde (påkrevd)</label>
-          {customer ? (
-            <div className="cust-chip">
-              <div>
-                <b>{customer.label}</b>
-                {customer.sublabel && <small>{customer.sublabel}</small>}
-              </div>
-              <span className="cust-orders">{customer.orders} ordre</span>
-              <button className="cust-change" onClick={clearCustomer}>
-                Endre
-              </button>
+        <div className="sheet-split">
+          {/* LEFT PANE — order summary: products + totals */}
+          <div className="pane pane-order">
+            <div className="lines">
+              {totalQty === 0 ? (
+                <div className="emptycart">Kurven er tom.</div>
+              ) : (
+                Object.values(cart).map(({ p, q }) => (
+                  <div className="line" key={p.id}>
+                    <div className="lim">
+                      {p.image && (
+                        <img
+                          src={p.image}
+                          alt=""
+                          referrerPolicy="no-referrer"
+                          onError={(e) => e.currentTarget.remove()}
+                        />
+                      )}
+                    </div>
+                    <div className="lmeta">
+                      <b>{p.name}</b>
+                      <small>
+                        {p.vendor} · {kr(p.casePrice)}/kolli
+                      </small>
+                    </div>
+                    <div className="stepper">
+                      <button onClick={() => dec(p)}>−</button>
+                      <span onClick={() => setQp({ p, val: String(q), typing: false })}>{q}</span>
+                      <button onClick={() => add(p)}>+</button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          ) : (
-            <>
-              <div
-                className={"fakeinput" + (kbTarget === "ref" ? " active" : "")}
-                onClick={() => setKbTarget("ref")}
-              >
-                <span className={ref ? "" : "ph"}>{ref || "Søk kunde …"}</span>
-                <span className="caret" />
+            <div className="order-total">
+              <div className="totalrow sub">
+                <span>Delsum · {totalQty} {totalQty === 1 ? "vare" : "varer"}</span>
+                <span>{kr(totalKr)}</span>
               </div>
-              {ref.trim().length >= 2 && (
-                <div className="cust-results">
-                  {custLoading && <div className="cust-hint">Søker …</div>}
-                  {!custLoading && custResults.length === 0 && (
-                    <div className="cust-hint">
-                      Ingen kunde funnet — prøv navn, firma eller kundenr.
+              <div className="totalrow">
+                <span>Totalt · inkl. mva</span>
+                <b>{kr(totalKr)}</b>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT PANE — customer + total + send */}
+          <div className="pane pane-action">
+            <div className="nameblock">
+              <label>Kunde — søk og velg registrert kunde (påkrevd)</label>
+              {customer ? (
+                <div className="cust-chip">
+                  <div>
+                    <b>{customer.label}</b>
+                    {customer.sublabel && <small>{customer.sublabel}</small>}
+                  </div>
+                  <span className="cust-orders">{customer.orders} ordre</span>
+                  <button className="cust-change" onClick={clearCustomer}>
+                    Endre
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div
+                    className={"fakeinput" + (kbTarget === "ref" ? " active" : "")}
+                    onClick={() => setKbTarget("ref")}
+                  >
+                    <span className={ref ? "" : "ph"}>{ref || "Søk kunde …"}</span>
+                    <span className="caret" />
+                  </div>
+                  {ref.trim().length >= 2 && (
+                    <div className="cust-results">
+                      {custLoading && <div className="cust-hint">Søker …</div>}
+                      {!custLoading && custResults.length === 0 && (
+                        <div className="cust-hint">
+                          Ingen kunde funnet — prøv navn, firma eller kundenr.
+                        </div>
+                      )}
+                      {custResults.map((c) => (
+                        <button className="cust-row" key={c.id} onClick={() => pickCustomer(c)}>
+                          <div>
+                            <b>{c.label}</b>
+                            {c.sublabel && <small>{c.sublabel}</small>}
+                          </div>
+                          <span className="cust-orders">{c.orders} ordre</span>
+                        </button>
+                      ))}
                     </div>
                   )}
-                  {custResults.map((c) => (
-                    <button className="cust-row" key={c.id} onClick={() => pickCustomer(c)}>
-                      <div>
-                        <b>{c.label}</b>
-                        {c.sublabel && <small>{c.sublabel}</small>}
-                      </div>
-                      <span className="cust-orders">{c.orders} ordre</span>
-                    </button>
-                  ))}
-                </div>
+                </>
               )}
-            </>
-          )}
-        </div>
-        </div>
-        <div className="sheet-foot">
-          <div className="totalrow">
-            <span>Sum · inkl. mva</span>
-            <b>{kr(totalKr)}</b>
+            </div>
+            <div className="action-foot">
+              <div className="totalrow">
+                <span>Å betale · inkl. mva</span>
+                <b>{kr(totalKr)}</b>
+              </div>
+              {totalQty > 0 && !customer && (
+                <div className="send-hint">Velg registrert kunde for å sende bestillingen.</div>
+              )}
+              <button
+                className="sendbtn"
+                disabled={sending || !totalQty || !customer}
+                onClick={send}
+              >
+                {sending ? "Sender …" : "Send bestilling"}
+              </button>
+            </div>
           </div>
-          {totalQty > 0 && !customer && (
-            <div className="send-hint">Velg registrert kunde for å sende bestillingen.</div>
-          )}
-          <button
-            className="sendbtn"
-            disabled={sending || !totalQty || !customer}
-            onClick={send}
-          >
-            {sending ? "Sender …" : "Send bestilling"}
-          </button>
         </div>
       </div>
 
