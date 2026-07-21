@@ -295,11 +295,14 @@ export default function Kiosk({ categories, demo }: Props) {
   const activeCat = categories.find((c) => c.handle === cat);
   const searching = Boolean(query.trim());
 
-  // This store doesn't maintain live inventory counts (most products report 0),
-  // and the kiosk only takes orders — staff pack and confirm them at the counter,
-  // so a zero count must never hide or block a product. Show everything in the
-  // collection's curated server order.
-  const shown = items;
+  // In-stock always first, out-of-stock sinks to the bottom — across every page
+  // loaded so far, not just within one. A stable partition keeps each group in
+  // its original order. Products that report 0 (this store rarely tracks stock)
+  // still show and stay orderable; they just sort last.
+  const shown = useMemo(
+    () => [...items.filter((p) => p.stock > 0), ...items.filter((p) => p.stock <= 0)],
+    [items]
+  );
 
   // Only ever a positive, reassuring signal ("5 på lager"). A missing or zero
   // count means "not tracked" here, not "sold out", so we simply say nothing.
