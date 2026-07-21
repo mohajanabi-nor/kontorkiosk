@@ -283,7 +283,21 @@ const DRAFT_MUTATION = `
     }
   }`;
 
-export async function createDraftOrder(
+// Turn the draft into a real order. paymentPending:true creates an OPEN, unpaid
+// order (financial status "pending") — it shows under Orders, not Drafts, and
+// staff settle payment at the counter. No inventory is charged twice.
+const DRAFT_COMPLETE = `
+  mutation KioskComplete($id: ID!) {
+    draftOrderComplete(id: $id, paymentPending: true) {
+      draftOrder { id order { id name } }
+      userErrors { field message }
+    }
+  }`;
+
+// Create the order the kiosk sends. We build a draft first (the only input that
+// cleanly carries customer + tags + note in one call), then immediately COMPLETE
+// it into a real, unpaid order so it lands under Orders instead of staying a draft.
+export async function createOrder(
   lines: OrderLine[],
   reference: string,
   customerId?: string
@@ -293,7 +307,9 @@ export async function createDraftOrder(
     return { ok: true, name: "NE-" + Math.floor(1000 + Math.random() * 9000) };
   }
   const tag = process.env.KIOSK_ORDER_TAG || "kiosk";
-  const data = await adminGraphql<{
+
+  // 1) Create the draft.
+  const created = await adminGraphql<{
     draftOrderCreate: {
       draftOrder: { id: string; name: string } | null;
       userErrors: { field: string[]; message: string }[];
@@ -306,9 +322,24 @@ export async function createDraftOrder(
       ...(customerId ? { customerId } : {}),
     },
   });
-  const r = data.draftOrderCreate;
-  if (r.userErrors?.length) {
-    return { ok: false, name: "", error: r.userErrors.map((e) => e.message).join(", ") };
+  const c = created.draftOrderCreate;
+  if (c.userErrors?.length) {
+    return { ok: false, name: "", error: c.userErrors.map((e) => e.message).join(", ") };
   }
-  return { ok: true, name: r.draftOrder?.name || "—" };
+  const draftId = c.draftOrder?.id;
+  if (!draftId) return { ok: false, name: "", error: "Kunne ikke opprette ordre" };
+
+  // 2) Complete it into a real (unpaid) order.
+  const done = await adminGraphql<{
+    draftOrderComplete: {
+      draftOrder: { id: string; order: { id: string; name: string } | null } | null;
+      userErrors: { field: string[]; message: string }[];
+    };
+  }>(DRAFT_COMPLETE, { id: draftId });
+  const d = done.draftOrderComplete;
+  if (d.userErrors?.length) {
+    return { ok: false, name: "", error: d.userErrors.map((e) => e.message).join(", ") };
+  }
+  // Prefer the completed order's number (#1001); fall back to the draft name.
+  return { ok: true, name: d.draftOrder?.order?.name || c.draftOrder?.name || "—" };
 }

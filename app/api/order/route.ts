@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createDraftOrder, OrderLine } from "@/lib/shopify";
+import { createOrder, OrderLine } from "@/lib/shopify";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     if (!lines.length) {
       return NextResponse.json({ ok: false, error: "Tom bestilling" }, { status: 400 });
     }
-    const result = await createDraftOrder(
+    const result = await createOrder(
       lines,
       body.reference?.trim() || "",
       body.customerId?.trim() || undefined
