@@ -230,7 +230,7 @@ export default function Kiosk({ categories, demo }: Props) {
   };
 
   const send = async () => {
-    if (!totalQty || sending) return;
+    if (!totalQty || sending || !customer) return;
     setSending(true);
     const lines = Object.values(cart).map(({ p, q }) => ({ variantId: p.id, quantity: q }));
     try {
@@ -531,7 +531,7 @@ export default function Kiosk({ categories, demo }: Props) {
           )}
         </div>
         <div className="nameblock">
-          <label>Kunde — søk navn, firma, e-post eller telefon</label>
+          <label>Kunde — søk og velg registrert kunde (påkrevd)</label>
           {customer ? (
             <div className="cust-chip">
               <div>
@@ -556,7 +556,9 @@ export default function Kiosk({ categories, demo }: Props) {
                 <div className="cust-results">
                   {custLoading && <div className="cust-hint">Søker …</div>}
                   {!custLoading && custResults.length === 0 && (
-                    <div className="cust-hint">Ingen kunde funnet</div>
+                    <div className="cust-hint">
+                      Ingen kunde funnet — prøv navn, firma eller kundenr.
+                    </div>
                   )}
                   {custResults.map((c) => (
                     <button className="cust-row" key={c.id} onClick={() => pickCustomer(c)}>
@@ -569,11 +571,6 @@ export default function Kiosk({ categories, demo }: Props) {
                   ))}
                 </div>
               )}
-              {ref.trim().length >= 2 && (
-                <button className="cust-new" onClick={() => setKbTarget(null)}>
-                  Fortsett med «{ref.trim()}» — ny kunde (opprettes i kassa)
-                </button>
-              )}
             </>
           )}
         </div>
@@ -583,7 +580,14 @@ export default function Kiosk({ categories, demo }: Props) {
             <span>Sum · inkl. mva</span>
             <b>{kr(totalKr)}</b>
           </div>
-          <button className="sendbtn" disabled={sending || !totalQty} onClick={send}>
+          {totalQty > 0 && !customer && (
+            <div className="send-hint">Velg registrert kunde for å sende bestillingen.</div>
+          )}
+          <button
+            className="sendbtn"
+            disabled={sending || !totalQty || !customer}
+            onClick={send}
+          >
             {sending ? "Sender …" : "Send bestilling"}
           </button>
         </div>

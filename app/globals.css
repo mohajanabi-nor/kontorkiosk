@@ -267,11 +267,8 @@ body { font-family: 'Poppins', system-ui, -apple-system, sans-serif; }
     border-radius:calc(9px*var(--u));cursor:pointer;}
   .cust-change:active{background:rgba(244,237,224,.12);}
   .cust-hint{font-size:calc(12.5px*var(--u));color:var(--muted);padding:calc(10px*var(--u)) calc(4px*var(--u));}
-  .cust-new{display:block;width:100%;text-align:left;background:none;border:1px dashed var(--gold);
-    border-radius:calc(12px*var(--u));color:var(--gold-deep);font-family:inherit;font-weight:600;
-    font-size:calc(13.5px*var(--u));padding:calc(12px*var(--u)) calc(14px*var(--u));
-    margin-top:calc(8px*var(--u));line-height:1.4;cursor:pointer;}
-  .cust-new:active{background:var(--cream-soft);}
+  .send-hint{text-align:center;font-size:calc(13px*var(--u));color:var(--gold-deep);font-weight:600;
+    margin-bottom:calc(10px*var(--u));}
 
   /* DONE */
   #done{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;
