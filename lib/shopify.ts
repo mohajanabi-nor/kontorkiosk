@@ -87,14 +87,14 @@ const inStockFirst = (a: KioskProduct, b: KioskProduct) =>
 // Shopify can't sort a collection connection by inventory (INVENTORY_TOTAL is
 // rejected on collections), and a collection's DEFAULT order can put sold-out
 // items first — which is why the kiosk was showing a wall of "out of stock".
-// BEST_SELLING pulls the popular products (Monster, Fanta, Coca-Cola…) to the
-// front; the in-stock-first sort below + the client partition then guarantee
+// Sort by CREATED desc (newest first) so freshly-added products show up right
+// away; the in-stock-first sort below + the client partition then guarantee
 // every in-stock product sits above every sold-out one. Fetch a bigger first
-// page so more in-stock best-sellers surface before any scrolling.
+// page so plenty of in-stock products surface before any scrolling.
 const COLLECTION_QUERY = `
   query Cat($id: ID!, $cursor: String) {
     collection(id: $id) {
-      products(first: 100, after: $cursor, sortKey: BEST_SELLING) {
+      products(first: 100, after: $cursor, sortKey: CREATED, reverse: true) {
         edges { node { ${FIELDS} } }
         pageInfo { hasNextPage endCursor }
       }
