@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { KioskProduct, KioskCustomer } from "@/lib/shopify";
-import { KioskCategory } from "@/lib/categories";
+import { Category, flattenCategories, findByCollectionId } from "@/lib/categories";
 import Lockup from "./Lockup";
 
 const kr = (n: number) =>
@@ -20,13 +20,17 @@ const IDLE_MS = 60000;
 type Screen = "attract" | "menu" | "done";
 
 interface Props {
-  categories: KioskCategory[];
+  categories: Category[];
   demo: boolean;
 }
 
 export default function Kiosk({ categories, demo }: Props) {
   const [screen, setScreen] = useState<Screen>("attract");
-  const [cat, setCat] = useState(categories[0]?.handle || "");
+  // Rail tree (static initially, upgraded to the live Shopify menu on mount) and
+  // the selected collection id. Default: the first menu item (Nyheter).
+  const [tree, setTree] = useState<Category[]>(categories);
+  const [cat, setCat] = useState<number>(categories[0]?.collectionId ?? 0);
+  const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [query, setQuery] = useState("");
   const [items, setItems] = useState<KioskProduct[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
@@ -99,13 +103,13 @@ export default function Kiosk({ categories, demo }: Props) {
 
   /* ---------- data ---------- */
   const load = useCallback(
-    async (opts: { cat?: string; q?: string; cursor?: string | null; append?: boolean }) => {
+    async (opts: { collectionId?: number; q?: string; cursor?: string | null; append?: boolean }) => {
       const mine = ++reqId.current;
       opts.append ? setLoadingMore(true) : setLoading(true);
       setErr(null);
       const params = new URLSearchParams();
       if (opts.q && opts.q.trim()) params.set("q", opts.q.trim());
-      else params.set("cat", opts.cat || cat);
+      else params.set("collectionId", String(opts.collectionId ?? cat));
       if (opts.cursor) params.set("cursor", opts.cursor);
       try {
         const r = await fetch(`/api/products?${params}`);
@@ -128,8 +132,19 @@ export default function Kiosk({ categories, demo }: Props) {
   );
 
   useEffect(() => {
-    load({ cat });
+    load({ collectionId: cat });
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Upgrade the rail to the live Shopify "nettbutikk" menu (falls back to the
+  // static tree server-side, so this always returns something usable).
+  useEffect(() => {
+    fetch("/api/menu")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.categories) && d.categories.length) setTree(d.categories);
+      })
+      .catch(() => {});
   }, []);
 
   // debounce search
@@ -137,7 +152,7 @@ export default function Kiosk({ categories, demo }: Props) {
     if (screen === "attract") return;
     const t = setTimeout(() => {
       if (query.trim()) load({ q: query });
-      else load({ cat });
+      else load({ collectionId: cat });
     }, 280);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,7 +163,7 @@ export default function Kiosk({ categories, demo }: Props) {
     const el = gridRef.current;
     if (!el || !hasNext || loadingMore || loading) return;
     if (el.scrollTop + el.clientHeight > el.scrollHeight - 600) {
-      load({ cat, q: query, cursor, append: true });
+      load({ collectionId: cat, q: query, cursor, append: true });
     }
   };
 
@@ -278,7 +293,7 @@ export default function Kiosk({ categories, demo }: Props) {
     setQp(null);
   };
 
-  const activeCat = categories.find((c) => c.handle === cat);
+  const activeCat = findByCollectionId(cat, tree);
   const searching = Boolean(query.trim());
 
   // Out-of-stock always at the bottom of the display. Shopify can't sort a
@@ -333,34 +348,67 @@ export default function Kiosk({ categories, demo }: Props) {
       <div className="body">
         {/* RAIL */}
         <div className="rail">
-          {categories.map((c) => (
-            <button
-              key={c.handle}
-              className={"cat" + (!searching && c.handle === cat ? " on" : "")}
-              onClick={() => {
-                setCat(c.handle);
-                setQuery("");
-                setKbTarget(null);
-                load({ cat: c.handle });
-                if (gridRef.current) gridRef.current.scrollTop = 0;
-              }}
-            >
-              <span className="ic">{c.icon}</span>
-              <span className="lbl">
-                {c.name}
-                <span className="n">{c.count} varer</span>
-              </span>
-            </button>
-          ))}
+          {tree.map((c) => {
+            const hasKids = !!c.children?.length;
+            const isOpen = expanded.has(c.collectionId);
+            const pick = (id: number) => {
+              setCat(id);
+              setQuery("");
+              setKbTarget(null);
+              load({ collectionId: id });
+              if (gridRef.current) gridRef.current.scrollTop = 0;
+            };
+            return (
+              <div className="cat-group" key={c.collectionId}>
+                <div className="cat-row">
+                  <button
+                    className={"cat" + (!searching && c.collectionId === cat ? " on" : "")}
+                    onClick={() => pick(c.collectionId)}
+                  >
+                    <span className="lbl">{c.title}</span>
+                  </button>
+                  {hasKids && (
+                    <button
+                      className={"cat-toggle" + (isOpen ? " open" : "")}
+                      aria-label="Vis underkategorier"
+                      onClick={() =>
+                        setExpanded((s) => {
+                          const n = new Set(s);
+                          if (n.has(c.collectionId)) n.delete(c.collectionId);
+                          else n.add(c.collectionId);
+                          return n;
+                        })
+                      }
+                    >
+                      ›
+                    </button>
+                  )}
+                </div>
+                {hasKids && isOpen && (
+                  <div className="cat-children">
+                    {c.children!.map((ch) => (
+                      <button
+                        key={ch.collectionId}
+                        className={"cat sub" + (!searching && ch.collectionId === cat ? " on" : "")}
+                        onClick={() => pick(ch.collectionId)}
+                      >
+                        <span className="lbl">{ch.title}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* GRID */}
         <div className="grid-wrap" ref={gridRef} onScroll={onScroll}>
           <div className="gh-eyebrow">{searching ? "Søkeresultat" : "Sortiment"}</div>
           <div className="gh-row">
-            <h2>{searching ? `«${query}»` : activeCat?.name}</h2>
+            <h2>{searching ? `«${query}»` : activeCat?.title}</h2>
             <span className="cnt">
-              {searching ? `${items.length} treff` : `${activeCat?.count ?? items.length} varer`}
+              {searching ? `${items.length} treff` : `${items.length} varer`}
             </span>
           </div>
           <div className="gh-rule" />

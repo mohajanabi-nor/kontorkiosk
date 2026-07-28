@@ -1,9 +1,11 @@
 import Kiosk from "./Kiosk";
-import { visibleCategories } from "@/lib/categories";
+import { CATEGORIES } from "@/lib/categories";
 import { hasShopifyCreds } from "@/lib/shopify";
 
 export const dynamic = "force-dynamic";
 
 export default function Page() {
-  return <Kiosk categories={visibleCategories()} demo={!hasShopifyCreds()} />;
+  // Render instantly with the static tree; Kiosk upgrades to the live Shopify
+  // menu via /api/menu on mount.
+  return <Kiosk categories={CATEGORIES} demo={!hasShopifyCreds()} />;
 }
