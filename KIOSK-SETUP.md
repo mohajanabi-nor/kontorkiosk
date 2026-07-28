@@ -59,4 +59,6 @@ keyboard still gets out. Use option 1 for the real thing.
 - The service worker **never caches `/api/`** — stock and prices are always live.
   It caches product images (their URLs are versioned, so they're safe) and the
   app shell, so a brief Wi-Fi drop doesn't blank the screen.
-- 60-second idle → clears the basket and returns to the attract screen.
+- No idle timeout — the kiosk stays on the current screen no matter how long it
+  goes untouched. The basket clears when an order is sent or "Ny bestilling" is
+  tapped.

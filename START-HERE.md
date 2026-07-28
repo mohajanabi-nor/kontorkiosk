@@ -71,9 +71,9 @@ If something breaks, `lib/shopify.ts` is the first place to look — specificall
 - **Out-of-stock: shown, dimmed, unclickable, sorted last.** Not hidden.
 - **Negative stock → "Ikke på lager".** The store has genuinely negative inventory
   counts; never render a negative to a customer.
-- **60-second idle** clears the cart → attract screen. Replaces a "Start på nytt"
-  button the user removed. Don't remove it: a public kiosk must not hand the next
-  customer the last one's basket.
+- **No idle timer.** The screen never times out on its own; the cart is only
+  cleared when an order is sent or "Ny bestilling" is tapped. The user asked for
+  this explicitly — don't re-add an inactivity timeout.
 - **Whole card is the tap target**, not the small `+`. Deliberate, for touch.
 
 ## Known data issues (the user's data, not bugs to fix in code)
