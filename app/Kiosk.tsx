@@ -15,7 +15,6 @@ const KB_ROWS = [
   ["z", "x", "c", "v", "b", "n", "m", "-"],
 ];
 
-const IDLE_MS = 60000;
 
 type Screen = "attract" | "menu" | "done";
 
@@ -51,7 +50,6 @@ export default function Kiosk({ categories, demo }: Props) {
   const [orderNo, setOrderNo] = useState("");
 
   const gridRef = useRef<HTMLDivElement>(null);
-  const idleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqId = useRef(0);
   const kbRef = useRef<HTMLDivElement>(null);
   const [kbh, setKbh] = useState(0);
@@ -167,24 +165,8 @@ export default function Kiosk({ categories, demo }: Props) {
     }
   };
 
-  /* ---------- idle ---------- */
-  const resetIdle = useCallback(() => {
-    if (idleRef.current) clearTimeout(idleRef.current);
-    if (screen === "menu") idleRef.current = setTimeout(() => goAttract(), IDLE_MS);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [screen]);
-
-  useEffect(() => {
-    const h = () => resetIdle();
-    ["pointerdown", "keydown", "touchstart"].forEach((e) =>
-      document.addEventListener(e, h, { passive: true })
-    );
-    resetIdle();
-    return () => {
-      ["pointerdown", "keydown", "touchstart"].forEach((e) => document.removeEventListener(e, h));
-      if (idleRef.current) clearTimeout(idleRef.current);
-    };
-  }, [resetIdle]);
+  // No idle timer: the kiosk never auto-resets. It only returns to the start
+  // screen when staff choose to — via "Ny bestilling" after sending an order.
 
   /* ---------- cart ---------- */
   const totalQty = useMemo(() => Object.values(cart).reduce((a, b) => a + b.q, 0), [cart]);
@@ -219,7 +201,6 @@ export default function Kiosk({ categories, demo }: Props) {
   };
 
   const goAttract = () => {
-    if (idleRef.current) clearTimeout(idleRef.current);
     setCart({});
     setRef("");
     setCustomer(null);
