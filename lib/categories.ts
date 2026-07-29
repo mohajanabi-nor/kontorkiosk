@@ -77,6 +77,61 @@ export const CATEGORIES: Category[] = [
   { title: "Tahina & Halawa (AR)", collectionId: 300455788736 },
 ];
 
+// Map a category title to a flat icon. Keyword-matched (first hit wins, so keep
+// specific terms before generic ones) — works for both the static tree and the
+// live Shopify menu, whose items carry no icon of their own.
+const ICONS: [RegExp, string][] = [
+  [/nyhet/i, "✨"],
+  [/tilbud/i, "🏷️"],
+  [/frys/i, "🧊"],
+  [/kjøl/i, "🧀"],
+  [/sjokolade/i, "🍫"],
+  [/kakao/i, "🍫"],
+  [/energidrikk/i, "⚡"],
+  [/brus/i, "🥤"],
+  [/øl/i, "🍺"],
+  [/iskaffe|kaffe/i, "☕"],
+  [/iste|(^|\s)te(\s|$|&)/i, "🍵"],
+  [/saft|syrup/i, "🧉"],
+  [/juice|drikke/i, "🧃"],
+  [/chips/i, "🥔"],
+  [/snacks/i, "🥨"],
+  [/kjeks|småkak/i, "🍪"],
+  [/vaffel/i, "🧇"],
+  [/brød|kake/i, "🍰"],
+  [/bakevar/i, "🥐"],
+  [/barnegodteri/i, "🧸"],
+  [/dadler/i, "🌴"],
+  [/frukt|grønnsak/i, "🥦"],
+  [/frokost/i, "🥣"],
+  [/fisk/i, "🐟"],
+  [/hermetikk/i, "🥫"],
+  [/honning/i, "🍯"],
+  [/korn|ris/i, "🌾"],
+  [/krydder/i, "🌶️"],
+  [/majones|sennep/i, "🥚"],
+  [/nudler/i, "🍜"],
+  [/nøtter|frø/i, "🥜"],
+  [/non food/i, "🧴"],
+  [/olje|eddik/i, "🫒"],
+  [/oliven/i, "🫒"],
+  [/pasta|spaghetti/i, "🍝"],
+  [/pålegg/i, "🥪"],
+  [/saus/i, "🥫"],
+  [/supper|suppe/i, "🍲"],
+  [/tomat|passata/i, "🍅"],
+  [/tørket|tørkede|sopp/i, "🍇"],
+  [/tørrmelk|kondensert|melk/i, "🥛"],
+  [/vaskemid/i, "🧼"],
+  [/søtsak|godteri/i, "🍬"],
+  [/tahina|halawa/i, "🍯"],
+];
+
+export function iconFor(title: string): string {
+  for (const [re, icon] of ICONS) if (re.test(title)) return icon;
+  return "🛒";
+}
+
 /** Flatten the tree (parents + children) in menu order. */
 export function flattenCategories(list: Category[] = CATEGORIES): Category[] {
   const out: Category[] = [];

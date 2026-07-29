@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { KioskProduct, KioskCustomer } from "@/lib/shopify";
-import { Category, flattenCategories, findByCollectionId } from "@/lib/categories";
+import { Category, flattenCategories, findByCollectionId, iconFor } from "@/lib/categories";
 import Lockup from "./Lockup";
 
 const kr = (n: number) =>
@@ -365,6 +365,7 @@ export default function Kiosk({ categories, demo }: Props) {
                     className={"cat" + (!searching && c.collectionId === cat ? " on" : "")}
                     onClick={() => pick(c.collectionId)}
                   >
+                    <span className="ic">{iconFor(c.title)}</span>
                     <span className="lbl">{c.title}</span>
                   </button>
                   {hasKids && (
