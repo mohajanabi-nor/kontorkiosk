@@ -281,10 +281,16 @@ export default function Kiosk({ categories, demo }: Props) {
   // collection by inventory, so pages come back sorted only within themselves —
   // this stable partition keeps every available item above every sold-out one
   // across all loaded pages, preserving each group's server order.
-  const shown = useMemo(
-    () => [...items.filter((p) => p.stock > 0), ...items.filter((p) => p.stock <= 0)],
-    [items]
-  );
+  // In-stock first, and alphabetical by name within each group so products with
+  // the same name (e.g. all the "Squeeze" variants) sit together instead of
+  // being scattered by when they were added.
+  const shown = useMemo(() => {
+    const byName = (a: KioskProduct, b: KioskProduct) =>
+      a.name.localeCompare(b.name, "nb");
+    const inStock = items.filter((p) => p.stock > 0).sort(byName);
+    const out = items.filter((p) => p.stock <= 0).sort(byName);
+    return [...inStock, ...out];
+  }, [items]);
 
   const stockNote = (s: number) => {
     if (s <= 0) return null;
